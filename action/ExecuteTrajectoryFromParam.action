@@ -1,0 +1,10 @@
+#Goal
+string group_name
+string[] trajectory_names
+bool simulation
+---
+#Result
+bool ok
+---
+#Feedback
+
