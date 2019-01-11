@@ -289,11 +289,14 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
           // start with valid velocities, then expand intervals
           // epsilon to prevent divide-by-zero
           std::vector<double> time_diff(trajectory.getWayPointCount() - 1, std::numeric_limits<double>::epsilon());
+          
+          for (unsigned i = 1; i < num_points; i++)
+            time_diff.at(i-1)=trajectory.getWayPointDurationFromPrevious(i);
+          
           for (unsigned int j = 0; j < num_joints; j++)
             init_times(num_points, &time_diff[0], &t2[j].positions[0], t2[j].max_velocity, t2[j].min_velocity);
           
           // Stretch intervals until close to the bounds
-          
           unsigned int niter=0;
           while (1)
           {
@@ -315,6 +318,7 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
               for (unsigned i = 0; i < num_points; i++)
               {
                 const double acc = t2[j].accelerations[i];
+                  
                 double atfactor = 1.0;
                 if (acc > t2[j].max_acceleration)
                   atfactor = sqrt(acc / t2[j].max_acceleration);
@@ -322,8 +326,10 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
                   atfactor = sqrt(acc / t2[j].min_acceleration);
                 if (atfactor > 1.01)  // within 1%
                   loop = 1;
+                
+//                 atfactor = (atfactor - 1.0) / 64.0 + 1.0;  // 1/16th
                 atfactor = (atfactor - 1.0) / 64.0 + 1.0;  // 1/16th
-//                 atfactor = (atfactor - 1.0) / 16.0 + 1.0;  // 1/16th
+                //                 atfactor = (atfactor - 1.0) / 16.0 + 1.0;  // 1/16th
 //                 atfactor=std::min(atfactor,1.5);
 //                 atfactor = 2*std::pow(atfactor - 1.0,2) + 1.0;  // 1/16th
                 if (i > 0)
@@ -336,9 +342,11 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
             if (loop == 0)
               break;  // finished
               
-              // Stretch
-              for (unsigned i = 0; i < num_points - 1; i++)
-                time_diff[i] *= time_factor[i];
+            // Stretch
+            for (unsigned i = 0; i < num_points - 1; i++)
+              time_diff[i] *= time_factor[i];
+              
+            
           }
           
           // Final adjustment forces the trajectory within bounds
@@ -347,6 +355,9 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
           // Convert back to JointTrajectory form
           for (unsigned int i = 1; i < num_points; i++)
             trajectory.setWayPointDurationFromPrevious(i, time_diff[i - 1]);
+          
+
+          
           for (unsigned int i = 0; i < num_points; i++)
           {
             for (unsigned int j = 0; j < num_joints; j++)
@@ -479,7 +490,8 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
         time = (dx / max_velocity);
       else
         time = (dx / min_velocity);
-      time += std::numeric_limits<double>::epsilon();  // prevent divide-by-zero
+//       time += std::numeric_limits<double>::epsilon();  // prevent divide-by-zero
+      time += 1.0e-6;  // prevent divide-by-zero
       
       if (dt[i] < time)
         dt[i] = time;

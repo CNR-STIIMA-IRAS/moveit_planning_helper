@@ -88,6 +88,28 @@ namespace trajectory_processing
     return true;
   }
   
+  inline void removeDuplicates(trajectory_msgs::JointTrajectory& trj)
+  {
+    for (unsigned int iPnt=1;iPnt<trj.points.size();iPnt++)
+    {
+      if ((trj.points.at(iPnt).time_from_start.toSec()-trj.points.at(iPnt-1).time_from_start.toSec())>1e-6)
+      {
+        break;
+      }
+      
+      for (unsigned int iax=0;iax<trj.points.at(iPnt).positions.size();iax++)
+      {
+        if (std::abs(trj.points.at(iPnt).positions.at(iax)-trj.points.at(iPnt-1).positions.at(iax))>1e-4)
+        {
+          break;
+        }
+      }
+      
+      ROS_FATAL("erasing point %u",iPnt);
+      trj.points.erase(trj.points.begin()+iPnt);
+    }
+    return;
+  };
   
   inline bool computeAccelerationVelocity(trajectory_msgs::JointTrajectory& trj)
   {
@@ -99,43 +121,52 @@ namespace trajectory_processing
     
     for (unsigned int iPnt=1;iPnt<trj.points.size();iPnt++)
     {
-      trj.points.at(iPnt).velocities.resize(trj.points.at(iPnt).positions.size());
-      trj.points.at(iPnt).accelerations.resize(trj.points.at(iPnt).accelerations.size());
+      trj.points.at(iPnt).velocities.resize(trj.points.at(iPnt).positions.size(),0);
+      trj.points.at(iPnt).accelerations.resize(trj.points.at(iPnt).accelerations.size(),0);
     }
     //compute velocity  
     // first point
-    for  (unsigned int iAx=0;iAx<trj.points.at(0).positions.size();iAx++)
-    {
-      if ((trj.points.at(1).time_from_start.toSec()-trj.points.at(0).time_from_start.toSec())<=0)
-      {
-        ROS_ERROR("Time is not monotonically incresing");
-        return false;
-      }
-      trj.points.at(0).velocities.at(iAx)=(trj.points.at(1).positions.at(iAx)-trj.points.at(0).positions.at(iAx))/(trj.points.at(1).time_from_start.toSec()-trj.points.at(0).time_from_start.toSec());
-    }
+//     for  (unsigned int iAx=0;iAx<trj.points.at(0).positions.size();iAx++)
+//     {
+//       if ((trj.points.at(1).time_from_start.toSec()-trj.points.at(0).time_from_start.toSec())<=0)
+//       {
+//         ROS_ERROR("Time is not monotonically incresing");
+//         return false;
+//       }
+//       trj.points.at(0).velocities.at(iAx)=(trj.points.at(1).positions.at(iAx)-trj.points.at(0).positions.at(iAx))/(trj.points.at(1).time_from_start.toSec()-trj.points.at(0).time_from_start.toSec());
+//     }
     // from second point to last
-    for (unsigned int iPnt=1;iPnt<trj.points.size();iPnt++)
+    
+    
+    for (unsigned int iPnt=1;iPnt<(trj.points.size());iPnt++)
+    {
+      trj.points.at(iPnt).time_from_start=ros::Duration(trj.points.at(iPnt-1).time_from_start.toSec()+std::max(1.0e-5,trj.points.at(iPnt).time_from_start.toSec()-trj.points.at(iPnt-1).time_from_start.toSec()));
+    }
+      
+    for (unsigned int iPnt=1;iPnt<(trj.points.size()-1);iPnt++)
       for  (unsigned int iAx=0;iAx<trj.points.at(iPnt).positions.size();iAx++)
-        trj.points.at(iPnt).velocities.at(iAx)=(trj.points.at(iPnt).positions.at(iAx)-trj.points.at(iPnt-1).positions.at(iAx))/(trj.points.at(iPnt).time_from_start.toSec()-trj.points.at(iPnt-1).time_from_start.toSec());
+        trj.points.at(iPnt).velocities.at(iAx)=(trj.points.at(iPnt+1).positions.at(iAx)-trj.points.at(iPnt-1).positions.at(iAx))/std::max(1e-4,trj.points.at(iPnt+1).time_from_start.toSec()-trj.points.at(iPnt-1).time_from_start.toSec());
      
     
       //compute accelerations
       // first point
       for  (unsigned int iAx=0;iAx<trj.points.at(0).accelerations.size();iAx++)
       {
-        if ((trj.points.at(1).time_from_start.toSec()-trj.points.at(0).time_from_start.toSec())<=0)
+        if ((trj.points.at(1).time_from_start.toSec()-trj.points.at(0).time_from_start.toSec())<0)
         {
           ROS_ERROR("Time is not monotonically incresing");
           return false;
         }
-        trj.points.at(0).accelerations.at(iAx)=(trj.points.at(1).velocities.at(iAx)-trj.points.at(0).velocities.at(iAx))/(trj.points.at(1).time_from_start.toSec()-trj.points.at(0).time_from_start.toSec());
+        
+//         trj.points.at(0).accelerations.at(iAx)=0;
+//         trj.points.at(0).accelerations.at(iAx)=0;
       }
       // from second point to last
-      for (unsigned int iPnt=1;iPnt<trj.points.size();iPnt++)
+      for (unsigned int iPnt=1;iPnt<(trj.points.size()-1);iPnt++)
         for  (unsigned int iAx=0;iAx<trj.points.at(iPnt).accelerations.size();iAx++)
-          trj.points.at(iPnt).accelerations.at(iAx)=(trj.points.at(iPnt).velocities.at(iAx)-trj.points.at(iPnt-1).velocities.at(iAx))/(trj.points.at(iPnt).time_from_start.toSec()-trj.points.at(iPnt-1).time_from_start.toSec());
+          trj.points.at(iPnt).accelerations.at(iAx)=(trj.points.at(iPnt+1).velocities.at(iAx)-trj.points.at(iPnt-1).velocities.at(iAx))/std::max(1e-4,trj.points.at(iPnt+1).time_from_start.toSec()-trj.points.at(iPnt-1).time_from_start.toSec());
         
-    return false;
+    return true;
   }
 
   
@@ -153,7 +184,7 @@ namespace trajectory_processing
     std::vector<std::vector<double>> velocities;
     if (!rosparam_utilities::getParamMatrix(nh, trj_name+"/velocities", velocities))
     {
-      ROS_ERROR("%s/velocities does not exist", trj_name.c_str());
+      ROS_DEBUG("%s/velocities does not exist", trj_name.c_str());
     }
     
     if (npnt == 0)
@@ -168,11 +199,11 @@ namespace trajectory_processing
       return false;
     }
     
-    std::vector<double> time;
+    std::vector<double> time(positions.size(),0);
     if (!nh.getParam(trj_name+"/time_from_start", time))
     {
-      ROS_ERROR("%s/time_from_start does not exist", trj_name.c_str());
-      return false;
+      ROS_DEBUG("%s/time_from_start does not exist", trj_name.c_str());
+      
     }
     if (time.size() != npnt)
     {
