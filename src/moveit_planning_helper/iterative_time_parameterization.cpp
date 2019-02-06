@@ -44,32 +44,20 @@ static const double ALIMIT = 1.0;  // default if not specified in model
 
 namespace trajectory_processing
 {
-static void fit_cubic_spline(const int n, const double dt[], const double x[], double x1[], double x2[]);
-static void adjust_two_positions(const int n, const double dt[], double x[], double x1[], double x2[],
-const double x2_i, const double x2_f);
-static void init_times(const int n, double dt[], const double x[], const double max_velocity,
-const double min_velocity);
-static int fit_spline_and_adjust_times(const int n, double dt[], const double x[], double x1[], double x2[],
-const double max_velocity, const double min_velocity,
-const double max_acceleration, const double min_acceleration,
-const double tfactor);
-static double global_adjustment_factor(const int n, double dt[], const double x[], double x1[], double x2[],
-const double max_velocity, const double min_velocity,
-const double max_acceleration, const double min_acceleration);
+//static void fit_cubic_spline(const int n, const double dt[], const double x[], double x1[], double x2[]);
+//static void adjust_two_positions(const int n, const double dt[], double x[], double x1[], double x2[],
+//const double x2_i, const double x2_f);
+//static void init_times(const int n, double dt[], const double x[], const double max_velocity,
+//const double min_velocity);
+//static int fit_spline_and_adjust_times(const int n, double dt[], const double x[], double x1[], double x2[],
+//const double max_velocity, const double min_velocity,
+//const double max_acceleration, const double min_acceleration,
+//const double tfactor);
+//static double global_adjustment_factor(const int n, double dt[], const double x[], double x1[], double x2[],
+//const double max_velocity, const double min_velocity,
+//const double max_acceleration, const double min_acceleration);
 
 // The path of a single joint: positions, velocities, and accelerations
-struct SingleJointTrajectory
-{
-std::vector<double> positions;  // joint's position at time[x]
-std::vector<double> velocities;
-std::vector<double> accelerations;
-double initial_acceleration;
-double final_acceleration;
-double min_velocity;
-double max_velocity;
-double min_acceleration;
-double max_acceleration;
-};
 
 void globalAdjustment(std::vector<SingleJointTrajectory>& t2, int num_joints, const int num_points,
 std::vector<double>& time_diff);
@@ -406,7 +394,7 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
     *  x1 and x2 are filled in by the algorithm.
     */
   
-  static void fit_cubic_spline(const int n, const double dt[], const double x[], double x1[], double x2[])
+  void fit_cubic_spline(const int n, const double dt[], const double x[], double x1[], double x2[])
   {
     int i;
     const double x1_i = x1[0], x1_f = x1[n - 1];
@@ -452,7 +440,7 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
     *  x2_i and x2_f are the (initial and final) 2nd derivative at 0 and N-1
     */
   
-  static void adjust_two_positions(const int n, const double dt[], double x[], double x1[], double x2[],
+  void adjust_two_positions(const int n, const double dt[], double x[], double x1[], double x2[],
                                     const double x2_i, const double x2_f)
   {
     x[1] = x[0];
@@ -479,7 +467,7 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
     *  Increase a segment's time interval if the current time isn't long enough.
     */
   
-  static void init_times(const int n, double dt[], const double x[], const double max_velocity, const double min_velocity)
+  void init_times(const int n, double dt[], const double x[], const double max_velocity, const double min_velocity)
   {
     int i;
     for (i = 0; i < n - 1; i++)
@@ -518,7 +506,7 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
     *  x1 and x2 are filled in by the algorithm.
     */
   
-  static int fit_spline_and_adjust_times(const int n, double dt[], const double x[], double x1[], double x2[],
+  int fit_spline_and_adjust_times(const int n, double dt[], const double x[], double x1[], double x2[],
                                           const double max_velocity, const double min_velocity,
                                           const double max_acceleration, const double min_acceleration,
                                           const double tfactor)
@@ -560,7 +548,7 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
   // to force within bounds.
   // Assumes that the spline is already fit
   // (fit_cubic_spline must have been called before this).
-  static double global_adjustment_factor(const int n, double dt[], const double x[], double x1[], double x2[],
+  double global_adjustment_factor(const int n, double dt[], const double x[], double x1[], double x2[],
                                           const double max_velocity, const double min_velocity,
                                           const double max_acceleration, const double min_acceleration)
   {

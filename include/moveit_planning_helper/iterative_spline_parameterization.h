@@ -85,6 +85,40 @@ namespace trajectory_processing
     bool add_points_;  /// @brief If true, add two points to trajectory (first and last segments).
     /// If false, move the 2nd and 2nd-last points.
   };
+
+
+  struct SingleJointTrajectory
+  {
+  std::vector<double> positions;  // joint's position at time[x]
+  std::vector<double> velocities;
+  std::vector<double> accelerations;
+  double initial_acceleration;
+  double final_acceleration;
+  double min_velocity;
+  double max_velocity;
+  double min_acceleration;
+  double max_acceleration;
+  };
+
+  void fit_cubic_spline(const int n, const double dt[], const double x[], double x1[], double x2[]);
+  void adjust_two_positions(const int n, const double dt[], double x[], double x1[], double x2[],
+                                    const double x2_i, const double x2_f);
+  void init_times(const int n, double dt[], const double x[], const double max_velocity, const double min_velocity);
+  int fit_spline_and_adjust_times(const int n, double dt[], const double x[], double x1[], double x2[],
+                                          const double max_velocity, const double min_velocity,
+                                          const double max_acceleration, const double min_acceleration,
+                                          const double tfactor);
+
+  double global_adjustment_factor(const int n, double dt[], const double x[], double x1[], double x2[],
+                                          const double max_velocity, const double min_velocity,
+                                          const double max_acceleration, const double min_acceleration);
+
+  void globalAdjustment(std::vector<SingleJointTrajectory>& t2, int num_joints, const int num_points,
+                        std::vector<double>& time_diff);
+
+
+
+
 }
 
 #endif
