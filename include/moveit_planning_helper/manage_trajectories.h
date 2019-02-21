@@ -7,6 +7,8 @@
 #include <moveit_planning_helper/iterative_spline_parameterization.h>
 #include <ros/console.h>
 #include <eigen_matrix_utils/eigen_matrix_utils.h>
+#include <moveit_planning_helper/spline_interpolator.h>
+
 
 namespace trajectory_processing
 {
@@ -130,6 +132,7 @@ inline bool computeAccelerationVelocity(trajectory_msgs::JointTrajectory& trj)
 
   for  (unsigned int iAx=0;iAx<trj.points.at(0).positions.size();iAx++)
   {
+
     for (unsigned int iPnt=1;iPnt<(trj.points.size()-1);iPnt++)
       trj.points.at(iPnt).velocities.at(iAx)=(trj.points.at(iPnt+1).positions.at(iAx)-trj.points.at(iPnt-1).positions.at(iAx))/(trj.points.at(iPnt+1).time_from_start.toSec()-trj.points.at(iPnt-1).time_from_start.toSec());
 
@@ -144,11 +147,13 @@ inline bool computeAccelerationVelocity(trajectory_msgs::JointTrajectory& trj)
 
 inline bool computeAccelerationVelocitySpline(trajectory_msgs::JointTrajectory& trj)
 {
+
   if (trj.points.size()<2)
   {
     ROS_ERROR("trajectory should have at least 2 points");
     return false;
   }
+
 
   for (unsigned int iPnt=1;iPnt<trj.points.size();iPnt++)
   {
@@ -161,29 +166,40 @@ inline bool computeAccelerationVelocitySpline(trajectory_msgs::JointTrajectory& 
 
   for  (unsigned int iAx=0;iAx<trj.points.at(0).positions.size();iAx++)
   {
-    unsigned int npnts=trj.points.size();
-    std::vector<double> dtime(npnts,0);
-    std::vector<double> pos(npnts,0);
-    std::vector<double> vel(npnts,0);
-    std::vector<double> acc(npnts,0);
-    for (unsigned int iPnt=0;iPnt<(trj.points.size());iPnt++)
-    {
-      pos.at(iPnt)=trj.points.at(iPnt).positions.at(iAx);
-    }
-    for (unsigned int iPnt=0;iPnt<(trj.points.size()-1);iPnt++)
-    {
-      dtime.at(iPnt)=trj.points.at(iPnt+1).time_from_start.toSec()-trj.points.at(iPnt).time_from_start.toSec();
-    }
+    // p(t) = p(0)+v*t + 0.5*a*t^2
+    // p(0) = p(0)
+    // p(t1) = p(0)+v*t1+0.5*a*(t1^2)
+    // p(t2) = p(0)+v*t2+0.5*a*(t2^2)
 
-    trajectory_processing::fit_cubic_spline(npnts,dtime.data(),pos.data(),vel.data(),acc.data());
-    //compute accelerations
+//    [t1 0.5*t1^2]  [v] = [p(t1)-p(0)]
+//    [t2 0.5*t2^2]  [a] = [p(t2)-p(0)]
+
     for (unsigned int iPnt=1;iPnt<(trj.points.size()-1);iPnt++)
-      trj.points.at(iPnt).accelerations.at(iAx)=(trj.points.at(iPnt+1).velocities.at(iAx)-trj.points.at(iPnt-1).velocities.at(iAx))/(trj.points.at(iPnt+1).time_from_start.toSec()-trj.points.at(iPnt-1).time_from_start.toSec());
+    {
+      double t1=trj.points.at(iPnt-1).time_from_start.toSec()-trj.points.at(iPnt).time_from_start.toSec();
+      double t2=trj.points.at(iPnt+1).time_from_start.toSec()-trj.points.at(iPnt).time_from_start.toSec();
+
+      double dp1=trj.points.at(iPnt-1).positions.at(iAx)-trj.points.at(iPnt).positions.at(iAx);
+      double dp2=trj.points.at(iPnt+1).positions.at(iAx)-trj.points.at(iPnt).positions.at(iAx);
+
+      Eigen::MatrixXd mtx(2,2);
+      mtx(0,0)= t1; mtx(0,1)=0.5*t1*t1;
+      mtx(1,0)= t2; mtx(1,1)=0.5*t2*t2;
+      Eigen::VectorXd dp(2);
+      dp(0)=dp1;
+      dp(1)=dp2;
+
+      Eigen::VectorXd res=mtx.inverse()*dp;
+      trj.points.at(iPnt-1).velocities.at(iAx)=res(0);
+      trj.points.at(iPnt-1).accelerations.at(iAx)=res(1);
+
+    }
 
   }
 
   return true;
 }
+
 
 inline bool getTrajectoryFromParam(const ros::NodeHandle& nh, const std::string& trj_name, trajectory_msgs::JointTrajectory& trj)
 {

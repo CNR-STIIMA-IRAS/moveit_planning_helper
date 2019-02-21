@@ -76,8 +76,18 @@ target_link_libraries(override_manager
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
-
-
+add_executable(test_cartesian src/test_cartesian.cpp)
+add_dependencies(test_cartesian ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_cartesian
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+add_executable(test_joint_multiquery src/test_joint_multiquery.cpp)
+add_dependencies(test_joint_multiquery ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_joint_multiquery
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 install(TARGETS ${PROJECT_NAME} execute_trj_move_group execute_trj_service execute_trj_from_param override_manager
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

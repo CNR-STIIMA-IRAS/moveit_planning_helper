@@ -316,7 +316,9 @@ bool IterativeSplineParameterization::computeTimeStamps(robot_trajectory::RobotT
                   loop = 1;
                 
 //                 atfactor = (atfactor - 1.0) / 64.0 + 1.0;  // 1/16th
-                atfactor = (atfactor - 1.0) / 64.0 + 1.0;  // 1/16th
+                atfactor = std::min(1.04,(atfactor - 1.0) / 64.0 + 1.0);  // 1/16th
+
+//                atfactor = (atfactor - 1.0) / 256.0 + 1.0;  // 1/16th
                 //                 atfactor = (atfactor - 1.0) / 16.0 + 1.0;  // 1/16th
 //                 atfactor=std::min(atfactor,1.5);
 //                 atfactor = 2*std::pow(atfactor - 1.0,2) + 1.0;  // 1/16th
