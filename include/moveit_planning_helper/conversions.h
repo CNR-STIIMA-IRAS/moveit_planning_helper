@@ -6,6 +6,8 @@
 #include <vector>
 
 #include <ros/ros.h>
+#include <eigen_conversions/eigen_msg.h>
+#include <tf_conversions/tf_eigen.h>
 #include <geometric_shapes/shape_operations.h>
 #include <moveit_msgs/CollisionObject.h>
 #include <moveit/robot_state/robot_state.h>

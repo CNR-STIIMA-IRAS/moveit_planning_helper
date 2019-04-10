@@ -1,11 +1,14 @@
 #ifndef __ITIA_MVUTILS__H__
 #define __ITIA_MVUTILS__H__
 
+#include <eigen3/Eigen/Core>
 #include <ros/ros.h>
+#include <tf/tf.h>
 #include <moveit/collision_detection/collision_common.h>
 
 #if ROS_VERSION_MINIMUM(1, 12, 0) //  kinetic
     #include <moveit/move_group_interface/move_group_interface.h>
+    #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #else
     #include <moveit/move_group_interface/move_group.h>
     namespace moveit
@@ -17,13 +20,118 @@
     }
 #endif
 
+#include <moveit_msgs/CollisionObject.h>
+#include <moveit_msgs/AttachedCollisionObject.h>
+#include <moveit_msgs/PlanningScene.h>
+#include <moveit_msgs/GetPlanningScene.h>
+#include <moveit_msgs/ApplyPlanningScene.h>
+#include <moveit_msgs/ObjectColor.h>
+
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
 
+#include <descartes_moveit/ikfast_moveit_state_adapter.h>
+#include <descartes_trajectory/axial_symmetric_pt.h>
+#include <descartes_trajectory/cart_trajectory_pt.h>
+#include <descartes_trajectory/joint_trajectory_pt.h>
+#include <descartes_planner/dense_planner.h>
+#include <descartes_utilities/ros_conversions.h>
+#include <cartesian_path_utils/cartesian_path_utils.h>
+
+
 namespace moveit_planning_helper
 {
-  
+
+  const std::map< int, std::string >& getMoveitErrorCodesIds( )
+  {
+    static std::map< int, std::string > ret {   {  1,      "SUCCESS                                      "}
+                                            ,   {  99999,  "FAILURE                                      "}
+                                            ,   {  1,      "PLANNING_FAILED                              "}
+                                            ,   {  2,      "INVALID_MOTION_PLAN                          "}
+                                            ,   {  3,      "MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE"}
+                                            ,   {  4,      "CONTROL_FAILED                               "}
+                                            ,   {  5,      "UNABLE_TO_AQUIRE_SENSOR_DATA                 "}
+                                            ,   {  6,      "TIMED_OUT                                    "}
+                                            ,   {  7,      "PREEMPTED                                    "}
+                                            ,   {  10,     "START_STATE_IN_COLLISION                     "}
+                                            ,   {  11,     "START_STATE_VIOLATES_PATH_CONSTRAINTS        "}
+                                            ,   {  12,     "GOAL_IN_COLLISION                            "}
+                                            ,   {  13,     "GOAL_VIOLATES_PATH_CONSTRAINTS               "}
+                                            ,   {  14,     "GOAL_CONSTRAINTS_VIOLATED                    "}
+                                            ,   {  15,     "INVALID_GROUP_NAME                           "}
+                                            ,   {  16,     "INVALID_GOAL_CONSTRAINTS                     "}
+                                            ,   {  17,     "INVALID_ROBOT_STATE                          "}
+                                            ,   {  18,     "INVALID_LINK_NAME                            "}
+                                            ,   {  19,     "INVALID_OBJECT_NAME                          "}
+                                            ,   {  21,     "FRAME_TRANSFORM_FAILURE                      "}
+                                            ,   {  22,     "COLLISION_CHECKING_UNAVAILABLE               "}
+                                            ,   {  23,     "ROBOT_STATE_STALE                            "}
+                                            ,   {  24,     "SENSOR_INFO_STALE                            "}
+                                            ,   {  31,     "NO_IK_SOLUTION                               "}
+                                            };
+    return ret;
+  }
+
+
+template< typename T > std::string to_string  ( const std::vector< T >& v
+                                              , const std::string prefix = "["
+                                              , const std::string delimeter = ", "
+                                              , const std::string terminator ="]" )
+{
+  std::string ret = prefix;
+  if(v.size() == 0)
+    return "";
+
+  for( size_t i=0; i < v.size()-1; i++)
+    ret += std::to_string( v[i] ) + delimeter;
+  ret += std::to_string( v.back() ) + terminator;
+
+  return ret;
+}
+
+
+template<> inline std::string to_string<>( const std::vector< std::string >& v
+                              , const std::string prefix
+                              , const std::string delimeter
+                              , const std::string terminator )
+{
+
+  std::string ret = prefix;
+  if( v.size() > 0 )
+  {
+    for( size_t i=0; i < v.size()-1; i++)
+      ret += v[i] + delimeter;
+    ret += v.back() + terminator;
+  }
+  else
+    ret += terminator;
+
+  return ret;
+}
+template <typename T>
+std::string to_string_with_precision(const T a_value, const int n = 6)
+{
+    std::ostringstream out;
+    out << std::fixed << std::setprecision(n) << a_value;
+    return out.str();
+}
+
+template< typename T > std::string to_string_keys ( const std::map< std::string, T >& m
+                                                  , const std::string prefix = "["
+                                                  , const std::string delimeter = ", "
+                                                  , const std::string terminator ="]" )
+{
+  std::string ret = prefix;
+  if(m.size() == 0)
+    return "";
+
+  for( auto im = m.begin(); im != m.end(); im++)
+    ret += im->first + delimeter;
+  ret += terminator;
+
+  return ret;
+}
 /**
  * @fn getJointPositions
  * @param const moveit::core::RobotState& robot_state
@@ -65,10 +173,12 @@ robot_state::RobotState getRobotState( ros::NodeHandle&                         
  * @fn getPlanningScene
  * 
  */
-void getPlanningScene ( ros::NodeHandle&                            nh
-                      , const moveit::core::RobotModelConstPtr      robot_model
-                      , const std::string&                          ns
-                      , planning_scene::PlanningScenePtr            ret);
+void getPlanningScene (ros::NodeHandle&                        nh
+                      , const std::string&                     ns
+                      , planning_scene::PlanningScenePtr       ret);
+
+void getPlanningScene ( ros::NodeHandle& nh
+                      , planning_scene::PlanningScene& ret );
 
 /**
  * @fn setRobotStateNH
@@ -80,6 +190,58 @@ bool setRobotStateNH( ros::NodeHandle&                          nh
                     , const std::string&                        group_name
                     , const std::string&                        ns    );
 
+
+bool setRobotState(ros::NodeHandle& nh, const std::vector<double> &joint_values , moveit::planning_interface::MoveGroupInterface &move_group);
+
+std::shared_ptr< moveit_msgs::CollisionObject > toCollisionObject (const std::string     &collisionObjID
+                                                                  , const std::string     &path_to_mesh
+                                                                  , const std::string     &reference_frame
+                                                                  , const tf::Pose        &pose
+                                                                  , const Eigen::Vector3d  scale = { 1.0, 1.0, 1.0} );
+
+
+bool applyAndCheckPS  (ros::NodeHandle nh
+                      , std::vector<moveit_msgs::CollisionObject> cov
+                      , std::vector<moveit_msgs::ObjectColor> colors
+                      , ros::Duration  timeout);
+
+
+void vecToTf ( std::vector<double> *pose ,tf::Pose& transform );
+
+
+bool plan   ( const geometry_msgs::Pose                             &target_pose
+            , const std::string                                     &planning_goup
+            , moveit::core::RobotModelPtr                           &robot_model
+            , moveit::planning_interface::MoveGroupInterface        &move_group
+            , std::vector<double>                                   &target_jpos
+            , moveit::planning_interface::MoveGroupInterface::Plan  &my_plan);
+
+
+
+
+bool plan ( const std::vector<double>&                              target_jpos
+          , moveit::planning_interface::MoveGroupInterface&         move_group
+          , moveit::planning_interface::MoveGroupInterface::Plan&   my_plan );
+
+
+bool cartesian( const geometry_msgs::Pose                             &starting_pose
+              , const geometry_msgs::Pose                             &target_pose
+              , const tf::StampedTransform                            &worldToRobot
+              , const double                                          &default_velocity
+              , moveit::planning_interface::MoveGroupInterface        &move_group
+              , moveit::planning_interface::MoveGroupInterface::Plan  &my_plan );
+
+
+
+bool descartes( const geometry_msgs::Pose     &starting_pose
+              , const geometry_msgs::Pose     &target_pose
+              , const std::vector<std::string>                                &joint_names
+              , boost::shared_ptr<descartes_moveit::IkFastMoveitStateAdapter> &robot_model
+              , descartes_planner::DensePlanner                               &planner
+              , moveit::planning_interface::MoveGroupInterface::Plan& my_plan
+              , std::vector<double>   starting_point = std::vector<double>());
+
+bool allowPanelCollisions(ros::NodeHandle& nh, const std::vector<std::string>& links, const std::string& link, bool allow = true );
 /**
  * @class RobotStateExtended
  * 

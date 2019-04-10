@@ -1,10 +1,20 @@
-#include <moveit/move_group/capability_names.h>
-#include <eigen_conversions/eigen_msg.h>
-#include <moveit_msgs/DisplayTrajectory.h>
-#include <moveit_msgs/GetPlanningScene.h>
+
 #include <moveit_planning_helper/manage_planning_scene.h>
 #include <moveit_planning_helper/conversions.h>
 #include <numeric>
+
+#include <moveit_msgs/DisplayTrajectory.h>
+#include <moveit/move_group/capability_names.h>
+#include <moveit/move_group_interface/move_group_interface.h>
+#include <descartes_moveit/ikfast_moveit_state_adapter.h>
+#include <descartes_trajectory/axial_symmetric_pt.h>
+#include <descartes_trajectory/cart_trajectory_pt.h>
+#include <descartes_trajectory/joint_trajectory_pt.h>
+#include <descartes_planner/dense_planner.h>
+#include <descartes_utilities/ros_conversions.h>
+
+#include <random>
+
 static const char* DEFAULT      = "\033[0m";
 static const char* RESET        = "\033[0m";
 static const char* BLACK        = "\033[30m";
@@ -24,68 +34,32 @@ static const char* BOLDMAGENTA  = "\033[1m\033[35m";
 static const char* BOLDCYAN     = "\033[1m\033[36m";
 static const char* BOLDWHITE    = "\033[1m\033[37m";
 
-
 namespace moveit_planning_helper
 {
-  
 
-template< typename T > std::string to_string  ( const std::vector< T >& v
-                                              , const std::string prefix = "["
-                                              , const std::string delimeter = ", "
-                                              , const std::string terminator ="]" )
-{
-  std::string ret = prefix;
-  if(v.size() == 0)
-    return "";
-  
-  for( size_t i=0; i < v.size()-1; i++)
-    ret += std::to_string( v[i] ) + delimeter;
-  ret += std::to_string( v.back() ) + terminator;
-  
-  return ret;
-}
 
-  
-template<> inline std::string to_string<>( const std::vector< std::string >& v
-                              , const std::string prefix
-                              , const std::string delimeter
-                              , const std::string terminator )
-{
-  
-  std::string ret = prefix;
-  if( v.size() > 0 )
-  { 
-    for( size_t i=0; i < v.size()-1; i++)
-      ret += v[i] + delimeter;
-    ret += v.back() + terminator;
-  }
-  else
-    ret += terminator;
-  
-  return ret;
-}
-template <typename T>
-std::string to_string_with_precision(const T a_value, const int n = 6)
-{
-    std::ostringstream out;
-    out << std::fixed << std::setprecision(n) << a_value;
-    return out.str();
-}
 
-template< typename T > std::string to_string_keys ( const std::map< std::string, T >& m
-                                                  , const std::string prefix = "["
-                                                  , const std::string delimeter = ", "
-                                                  , const std::string terminator ="]" )
+
+void vecToTf ( std::vector<double> *pose ,tf::Pose& transform )
 {
-  std::string ret = prefix;
-  if(m.size() == 0)
-    return "";
-  
-  for( auto im = m.begin(); im != m.end(); im++)
-    ret += im->first + delimeter;
-  ret += terminator;
-  
-  return ret;
+
+    geometry_msgs::Pose p;
+    p.position.x = pose->at ( 0 );
+    p.position.y = pose->at ( 1 );
+    p.position.z = pose->at ( 2 );
+
+    tf::Quaternion q;
+    if ( pose->size() == 6 )
+    {
+        std::cout << "roll: " << pose->at ( 3 ) << ", " << pose->at ( 4 ) <<", " << pose->at ( 5 ) << std::endl;
+        q = tf::createQuaternionFromRPY ( pose->at ( 3 ),pose->at ( 4 ),pose->at ( 5 ) );
+        tf::quaternionTFToMsg ( q, p.orientation );
+        std::cout << q << std::endl;
+    }
+    else
+        q = tf::Quaternion ( pose->at ( 4 ),pose->at ( 5 ),pose->at ( 6 ),pose->at ( 3 ) );
+
+    tf::poseMsgToTF ( p, transform );
 }
 
 
@@ -259,8 +233,8 @@ robot_state::RobotState getRobotState ( ros::NodeHandle&                       n
   return *ret;
 }
 
+
 void getPlanningScene ( ros::NodeHandle& nh
-                      , const moveit::core::RobotModelConstPtr robot_model
                       , const std::string& ns
                       , planning_scene::PlanningScenePtr ret)
 {
@@ -270,19 +244,19 @@ void getPlanningScene ( ros::NodeHandle& nh
   {
     ROS_ERROR("getPlanningScene Failed: service '%s' does not exist ", (ns + "/" +move_group::GET_PLANNING_SCENE_SERVICE_NAME).c_str() );
   }
-    
+
   moveit_msgs::PlanningScene planning_scene_msgs;
-  
+
   { /// ROBOT_STATE
     moveit_msgs::GetPlanningScene::Request request;
     moveit_msgs::GetPlanningScene::Response response;
-    
+
     request.components.components = request.components.ROBOT_STATE;
     if (!planning_scene_service.call(request, response))
     {
       ROS_WARN("Could not call planning scene service to get object names");
     }
-    
+
 
     planning_scene_msgs.name = response.scene.name;
     planning_scene_msgs.robot_state = response.scene.robot_state;
@@ -290,7 +264,7 @@ void getPlanningScene ( ros::NodeHandle& nh
   { // WORLD_OBJECT_GEOMETRY && WORLD_OBJECT_NAMES
     moveit_msgs::GetPlanningScene::Request request;
     moveit_msgs::GetPlanningScene::Response response;
-    
+
     request.components.components = request.components.WORLD_OBJECT_GEOMETRY;
     if (!planning_scene_service.call(request, response))
     {
@@ -301,7 +275,7 @@ void getPlanningScene ( ros::NodeHandle& nh
   { // OCTOMAP
     moveit_msgs::GetPlanningScene::Request request;
     moveit_msgs::GetPlanningScene::Response response;
-    
+
     request.components.components = request.components.OCTOMAP;
     if (!planning_scene_service.call(request, response))
     {
@@ -312,7 +286,7 @@ void getPlanningScene ( ros::NodeHandle& nh
   { // TRANSFORMS
     moveit_msgs::GetPlanningScene::Request request;
     moveit_msgs::GetPlanningScene::Response response;
-    
+
     request.components.components = request.components.TRANSFORMS;
     if (!planning_scene_service.call(request, response))
     {
@@ -323,7 +297,7 @@ void getPlanningScene ( ros::NodeHandle& nh
   { // ALLOWED_COLLISION_MATRIX
     moveit_msgs::GetPlanningScene::Request request;
     moveit_msgs::GetPlanningScene::Response response;
-    
+
     request.components.components = request.components.ALLOWED_COLLISION_MATRIX;
     if (!planning_scene_service.call(request, response))
     {
@@ -334,7 +308,7 @@ void getPlanningScene ( ros::NodeHandle& nh
   { // LINK_PADDING_AND_SCALING
     moveit_msgs::GetPlanningScene::Request request;
     moveit_msgs::GetPlanningScene::Response response;
-    
+
     request.components.components = request.components.LINK_PADDING_AND_SCALING;
     if (!planning_scene_service.call(request, response))
     {
@@ -346,7 +320,7 @@ void getPlanningScene ( ros::NodeHandle& nh
   { // OBJECT_COLORS
     moveit_msgs::GetPlanningScene::Request request;
     moveit_msgs::GetPlanningScene::Response response;
-    
+
     request.components.components = request.components.LINK_PADDING_AND_SCALING;
     if (!planning_scene_service.call(request, response))
     {
@@ -354,11 +328,119 @@ void getPlanningScene ( ros::NodeHandle& nh
     }
     planning_scene_msgs.object_colors = response.scene.object_colors;
   }
-  
+
   ret->setPlanningSceneMsg(planning_scene_msgs);
-  
+
   return;
 }
+
+
+void getPlanningScene   ( ros::NodeHandle& nh
+                        , planning_scene::PlanningScene& ret )
+{
+    ros::ServiceClient planning_scene_service;
+    planning_scene_service = nh.serviceClient<moveit_msgs::GetPlanningScene> ( "get_planning_scene" );
+    if ( !planning_scene_service.waitForExistence ( ros::Duration ( 5.0 ) ) )
+    {
+        ROS_ERROR ( "getPlanningScene Failed: service 'get_planning_scene ' does not exist" );
+    }
+
+    moveit_msgs::PlanningScene planning_scene_msgs;
+
+    {
+        /// ROBOT_STATE
+        moveit_msgs::GetPlanningScene::Request request;
+        moveit_msgs::GetPlanningScene::Response response;
+
+        request.components.components = request.components.ROBOT_STATE;
+        if ( !planning_scene_service.call ( request, response ) )
+        {
+            ROS_WARN ( "Could not call planning scene service to get object names" );
+        }
+
+
+        planning_scene_msgs.name = response.scene.name;
+        planning_scene_msgs.robot_state = response.scene.robot_state;
+    }
+    {
+        // WORLD_OBJECT_GEOMETRY && WORLD_OBJECT_NAMES
+        moveit_msgs::GetPlanningScene::Request request;
+        moveit_msgs::GetPlanningScene::Response response;
+
+        request.components.components = request.components.WORLD_OBJECT_GEOMETRY;
+        if ( !planning_scene_service.call ( request, response ) )
+        {
+            ROS_WARN ( "Could not call planning scene service to get object names" );
+        }
+        planning_scene_msgs.world.collision_objects = response.scene.world.collision_objects;
+    }
+    {
+        // OCTOMAP
+        moveit_msgs::GetPlanningScene::Request request;
+        moveit_msgs::GetPlanningScene::Response response;
+
+        request.components.components = request.components.OCTOMAP;
+        if ( !planning_scene_service.call ( request, response ) )
+        {
+            ROS_WARN ( "Could not call planning scene service to get object names" );
+        }
+        planning_scene_msgs.world.octomap = response.scene.world.octomap;
+    }
+    {
+        // TRANSFORMS
+        moveit_msgs::GetPlanningScene::Request request;
+        moveit_msgs::GetPlanningScene::Response response;
+
+        request.components.components = request.components.TRANSFORMS;
+        if ( !planning_scene_service.call ( request, response ) )
+        {
+            ROS_WARN ( "Could not call planning scene service to get object names" );
+        }
+        planning_scene_msgs.fixed_frame_transforms = response.scene.fixed_frame_transforms;
+    }
+    {
+        // ALLOWED_COLLISION_MATRIX
+        moveit_msgs::GetPlanningScene::Request request;
+        moveit_msgs::GetPlanningScene::Response response;
+
+        request.components.components = request.components.ALLOWED_COLLISION_MATRIX;
+        if ( !planning_scene_service.call ( request, response ) )
+        {
+            ROS_WARN ( "Could not call planning scene service to get object names" );
+        }
+        planning_scene_msgs.allowed_collision_matrix = response.scene.allowed_collision_matrix;
+    }
+    {
+        // LINK_PADDING_AND_SCALING
+        moveit_msgs::GetPlanningScene::Request request;
+        moveit_msgs::GetPlanningScene::Response response;
+
+        request.components.components = request.components.LINK_PADDING_AND_SCALING;
+        if ( !planning_scene_service.call ( request, response ) )
+        {
+            ROS_WARN ( "Could not call planning scene service to get object names" );
+        }
+        planning_scene_msgs.link_padding = response.scene.link_padding;
+        planning_scene_msgs.link_scale   = response.scene.link_scale;
+    }
+    {
+        // OBJECT_COLORS
+        moveit_msgs::GetPlanningScene::Request request;
+        moveit_msgs::GetPlanningScene::Response response;
+
+        request.components.components = request.components.LINK_PADDING_AND_SCALING;
+        if ( !planning_scene_service.call ( request, response ) )
+        {
+            ROS_WARN ( "Could not call planning scene service to get object names" );
+        }
+        planning_scene_msgs.object_colors = response.scene.object_colors;
+    }
+
+    ret.setPlanningSceneMsg ( planning_scene_msgs );
+
+    return;
+}
+
 
 bool setRobotStateNH( ros::NodeHandle&                          nh
                     , const moveit::core::RobotState&           robot_state
@@ -370,7 +452,7 @@ bool setRobotStateNH( ros::NodeHandle&                          nh
     ros::Publisher planning_scene_diff_publisher = nh.advertise<moveit_msgs::PlanningScene>( ns + "/planning_scene", 1);
   
     planning_scene::PlanningScenePtr      planning_scene( new planning_scene::PlanningScene( robot_model ) );
-    getPlanningScene(nh, robot_model, ns, planning_scene );
+    getPlanningScene(nh, ns, planning_scene );
     const moveit::core::JointModelGroup*  joint_model_group = robot_model->getJointModelGroup(group_name);
     const std::vector<std::string>        joint_names       = joint_model_group->getJointModelNames();
     
@@ -429,6 +511,113 @@ bool setRobotStateNH( ros::NodeHandle&                          nh
     
     return true;
 }
+
+
+
+std::shared_ptr<moveit_msgs::CollisionObject> toCollisionObject( const std::string      &collisionObjID
+                                                               , const std::string      &path_to_mesh
+                                                               , const std::string      &reference_frame
+                                                               , const tf::Pose         &pose
+                                                               , const Eigen::Vector3d   scale )
+{
+
+    std::shared_ptr<moveit_msgs::CollisionObject> collision_object(new moveit_msgs::CollisionObject );
+    collision_object->id = collisionObjID;
+    shapes::Mesh* m = shapes::createMeshFromResource ( path_to_mesh, scale );
+
+    shape_msgs::Mesh mesh;
+    shapes::ShapeMsg mesh_msg;
+    shapes::constructMsgFromShape ( m, mesh_msg );
+    mesh = boost::get<shape_msgs::Mesh> ( mesh_msg );
+
+    collision_object->meshes.resize ( 1 );
+    collision_object->mesh_poses.resize ( 1 );
+    collision_object->meshes[0] = mesh;
+    collision_object->header.frame_id = reference_frame;
+
+    geometry_msgs::Pose pose_msg;
+    tf::poseTFToMsg ( pose, pose_msg );
+
+    collision_object->mesh_poses[0] = pose_msg;
+
+    collision_object->meshes.push_back ( mesh );
+    collision_object->mesh_poses.push_back ( collision_object->mesh_poses[0] );
+    collision_object->operation = collision_object->ADD;
+
+    return collision_object;
+
+}
+
+
+
+
+
+bool applyAndCheckPS(ros::NodeHandle nh
+                    , std::vector<moveit_msgs::CollisionObject> cov
+                    , std::vector<moveit_msgs::ObjectColor> colors , ros::Duration timeout)
+{
+
+    ros::Publisher planning_scene_diff_publisher = nh.advertise<moveit_msgs::PlanningScene> ( "planning_scene", 1 );
+
+    while ( planning_scene_diff_publisher.getNumSubscribers() < 1 )
+    {
+        ros::WallDuration sleep_t ( 0.5 );
+        sleep_t.sleep();
+    }
+
+    moveit_msgs::PlanningScene planning_scene_msg;
+
+    for(auto const & color : colors )
+      planning_scene_msg.object_colors.push_back ( color );
+
+
+    for ( moveit_msgs::CollisionObject co: cov )
+        planning_scene_msg.world.collision_objects.push_back ( co );
+
+    planning_scene_msg.is_diff = true;
+
+    ROS_INFO_STREAM("Update planning scene");
+    ros::ServiceClient planning_scene_diff_client = nh.serviceClient<moveit_msgs::ApplyPlanningScene> ( "apply_planning_scene" );
+    planning_scene_diff_client.waitForExistence();
+
+    moveit_msgs::ApplyPlanningScene srv;
+    srv.request.scene = planning_scene_msg;
+    planning_scene_diff_client.call ( srv );
+
+    ROS_INFO_STREAM("Wait for updated planning scene...");
+    moveit::planning_interface::PlanningSceneInterface  planning_scene_interface;
+    ros::Time st = ros::Time::now();
+    while( ros::ok() )
+    {
+      auto const obj_names = planning_scene_interface.getKnownObjectNames( );
+      bool loaded = true;
+      for( const auto & co : cov )
+      {
+        auto const it = std::find_if( obj_names.begin(), obj_names.end(), [ & ]( const std::string s ) { return co.id == s;} );
+        loaded &= (obj_names.end() != it);
+
+      }
+      if( loaded )
+      {
+        ROS_INFO_STREAM("Updated planning scene.");
+        break;
+      }
+      else
+      {
+        if( (ros::Time::now() - st) > timeout)
+        {
+          ROS_FATAL_STREAM("Timeout expired.");
+          return false;
+        }
+        ROS_INFO_STREAM_THROTTLE(2,"Wait for updated planning scene...");
+      }
+      ros::Duration(0.2).sleep();
+    }
+    return true;
+}
+
+
+
 
 RobotStateExtended::RobotStateExtended( const ros::NodeHandle&                  nh
                                       , const moveit::core::RobotModelConstPtr  robot_model
@@ -678,7 +867,7 @@ bool RobotStateExtended::setRobotState  ( const std::vector<double>&   joints_po
   setRobotStateNH(nh_, check_state, robot_model_, kin_group_, ns_ );  
   setRobotStateNH(nh_, check_state, robot_model_, kin_group_, ns_ );  
   planning_scene::PlanningScenePtr planning_scene( new planning_scene::PlanningScene( robot_model_ ) );
-  getPlanningScene( nh_, robot_model_, ns_, planning_scene);
+  getPlanningScene( nh_, ns_, planning_scene);
   
   bool ok = setRobotState( joints_positions, planning_scene, calc_equivalent_joint_configurations, verbose);
   
@@ -693,7 +882,7 @@ bool RobotStateExtended::setRobotState  ( const robot_state::RobotState& robot_s
   setRobotStateNH(nh_, robot_state, robot_model_, kin_group_ , ns_ );  
   
   planning_scene::PlanningScenePtr planning_scene( new planning_scene::PlanningScene( robot_model_ ) );
-  getPlanningScene( nh_, robot_model_, ns_, planning_scene );
+  getPlanningScene( nh_, ns_, planning_scene );
   
   bool ok = setRobotState( robot_state, planning_scene, calc_equivalent_joint_configurations, verbose );
   planning_scene.reset();
@@ -730,6 +919,255 @@ bool RobotStateExtended::updateTF ( int pub_time, const int idx_configuration )
     ros::Duration(0.1).sleep(); 
   } 
   return true;
+}
+
+
+bool plan ( const geometry_msgs::Pose&                            target_pose
+          , const std::string&                                    planning_goup
+          , robot_model::RobotModelPtr&                           robot_model
+          , moveit::planning_interface::MoveGroupInterface&       move_group
+          , std::vector<double>&                                  target_jpos
+          , moveit::planning_interface::MoveGroupInterface::Plan& my_plan){
+
+  kinematics::KinematicsBasePtr solver = robot_model->getJointModelGroup ( planning_goup )->getSolverInstance();
+  moveit_msgs::MoveItErrorCodes error_code;
+  if ( !solver->getPositionIK ( target_pose, std::vector<double>(7,0), target_jpos, error_code ) )
+  {
+    ROS_ERROR("solver failed");
+    return false;
+  }
+
+  move_group.setJointValueTarget ( target_jpos );
+  moveit::planning_interface::MoveItErrorCode err = move_group.plan ( my_plan );
+  ROS_INFO("Plan return code: %s",  getMoveitErrorCodesIds( ).at( int( err.val ) ).c_str() );
+  if ( !err == moveit::planning_interface::MoveItErrorCode::SUCCESS )
+  {
+    ROS_ERROR("planning error !! %s", getMoveitErrorCodesIds( ).at( int( err.val ) ).c_str() );
+    return false;
+  }
+  return true;
+}
+
+
+bool plan ( const std::vector<double>                             &target_jpos
+          , moveit::planning_interface::MoveGroupInterface        &move_group
+          , moveit::planning_interface::MoveGroupInterface::Plan  &my_plan )
+{
+  move_group.setJointValueTarget ( target_jpos );
+
+  moveit::planning_interface::MoveItErrorCode err = move_group.plan ( my_plan );
+  ROS_INFO("Plan return code: %s",  getMoveitErrorCodesIds().at( int( err.val ) ).c_str() );
+  if ( !err == moveit::planning_interface::MoveItErrorCode::SUCCESS )
+  {
+    ROS_ERROR("planning error !! %s", getMoveitErrorCodesIds().at( int( err.val ) ).c_str() );
+    return false;
+  }
+  return true;
+}
+
+
+bool cartesian(const geometry_msgs::Pose                              &starting_pose
+              , const geometry_msgs::Pose                             &target_pose
+              , const tf::StampedTransform                            &worldToRobot
+              , const double                                          &default_velocity
+              , moveit::planning_interface::MoveGroupInterface        &move_group
+              , moveit::planning_interface::MoveGroupInterface::Plan  &my_plan )
+{
+  std::vector<geometry_msgs::Pose> waypoints;
+
+  tf::Pose sp,tp;
+
+  tf::poseMsgToTF(starting_pose,sp);
+  tf::poseMsgToTF(target_pose,tp);
+  sp = worldToRobot * sp;
+  tp = worldToRobot * tp;
+
+  geometry_msgs::Pose s_p,t_p;
+
+  tf::poseTFToMsg(sp,s_p);
+  tf::poseTFToMsg(tp,t_p);
+
+  waypoints.push_back ( s_p);
+  waypoints.push_back ( t_p);
+
+  move_group.setMaxVelocityScalingFactor ( default_velocity );
+
+  moveit_msgs::RobotTrajectory trajectory;
+  const double jump_threshold = 0.0;
+  const double eef_step = 0.01;
+  double fraction = move_group.computeCartesianPath ( waypoints, eef_step, jump_threshold, trajectory );
+
+  std::cout<<"fraction : "<<fraction<<std::endl;
+  if( fraction < 0.95 || trajectory.joint_trajectory.points.size() == 0 )
+  {
+    ROS_ERROR("Descartes failes in planning a cartesian plan");
+    return false;
+  }
+  trajectory.joint_trajectory.points.erase ( trajectory.joint_trajectory.points.begin() );
+
+  for(int i=0; i<trajectory.joint_trajectory.points.size(); i++)
+    std::cout<< trajectory.joint_trajectory.points[i].time_from_start<<std::endl;
+
+  my_plan.planning_time_ = 0;
+  my_plan.trajectory_ = trajectory;
+  return true;
+}
+
+
+bool descartes( const geometry_msgs::Pose                                     &starting_pose
+              , const geometry_msgs::Pose                                     &target_pose
+              , const std::vector<std::string>                                &joint_names
+              , boost::shared_ptr<descartes_moveit::IkFastMoveitStateAdapter> &robot_model
+              , descartes_planner::DensePlanner                               &planner
+              , moveit::planning_interface::MoveGroupInterface::Plan          &my_plan
+              , std::vector<double>                                           starting_point){
+
+  unsigned int npnts = 25;
+
+  std::vector<descartes_core::TrajectoryPtPtr> way_points;
+  if( starting_point.size() > 0 )
+  {
+    descartes_core::TrajectoryPtPtr p( new descartes_trajectory::JointTrajectoryPt( starting_point ) );
+    way_points.push_back( p );
+  }
+
+  Eigen::Affine3d starting_pos, end_pos;
+  tf::poseMsgToEigen ( starting_pose, starting_pos );
+  tf::poseMsgToEigen ( target_pose,   end_pos );
+
+  std::vector<double> lower_deviation ( 6,0 );
+  std::vector<double> upper_deviation ( 6,0 );
+
+  auto w  = descartes::createLinearTrajectory ( starting_pos
+                                              , end_pos
+                                              , lower_deviation
+                                              , upper_deviation,npnts
+                                              , 0.005
+                                              , M_PI*0.05
+                                              , 10 );
+  way_points.insert( way_points.end(), w.begin(), w.end() );
+
+  std::vector<std::vector<double> > seeds;
+
+  ROS_INFO("Computing seeds");
+  const int n_random_seed = 200;
+  std::random_device rnd_device;
+  std::mt19937 mersenne_engine {rnd_device()};  // Generates random integers
+  std::uniform_real_distribution<> dist {-M_PI/2.0, M_PI/2.0};
+  for( int i=0; i<n_random_seed; i++)
+  {
+    std::vector<double> seed ( 7,0.0 );
+    std::generate(std::begin(seed), std::end(seed), [&dist, &mersenne_engine](){ return dist(mersenne_engine); });
+    seeds.push_back(seed);
+  }
+
+
+  robot_model->setSeedStates(seeds);
+  if ( !planner.planPath ( way_points ) )
+  {
+    ROS_ERROR ( "Could not solve for a valid path" );
+    return false;
+  }
+
+  std::vector<descartes_core::TrajectoryPtPtr> result;
+  if ( !planner.getPath ( result ) )
+  {
+    ROS_ERROR ( "Descarte fails in get path" );
+    return false;
+  }
+
+  trajectory_msgs::JointTrajectory cart_trj;
+  cart_trj.joint_names = joint_names;
+  bool okk = descartes_utilities::toRosJointPoints ( *robot_model,result,0.5,cart_trj.points );
+  if ( !okk )
+  {
+    ROS_ERROR ( "Descarte fails convert trajectory" );
+    return false;
+  }
+
+  my_plan.trajectory_.joint_trajectory  = cart_trj;
+  return true;
+}
+
+
+bool setRobotState( ros::NodeHandle& nh, const std::vector<double>& joint_values, moveit::planning_interface::MoveGroupInterface& move_group )
+{
+
+  ros::Publisher move_robot_to_start_state = nh.advertise<sensor_msgs::JointState>("move_group/fake_controller_joint_states", 1000);
+  sensor_msgs::JointState start_state_msg;
+
+  robot_model::RobotModelConstPtr robot_model( (new robot_model_loader::RobotModelLoader( "robot_description" ))->getModel() );
+  robot_state::RobotState robot_state_start( robot_model );
+
+  robot_state_start.setVariablePositions( joint_values );
+  robot_state_start.update();
+
+  ros::Rate loop_rate(10);
+
+  int count = 1;
+
+  std::cout << BOLDGREEN << " set the robot state" << RESET << std::endl;
+  std::vector<double> joint_group_positions;
+  do
+  {
+    // muovo il robot!
+    moveit::core::robotStateToJointStateMsg(robot_state_start,start_state_msg);
+    move_robot_to_start_state.publish(start_state_msg);
+    ros::spinOnce();
+    loop_rate.sleep();
+
+    joint_group_positions = move_group.getCurrentJointValues();
+    count++;
+    if (count > 15){
+      ROS_ERROR("necessarie piu' di 15 iterazioni per raggiungere la posizione");
+      return false;
+    }
+  } while( ! std::equal(joint_group_positions.begin(),joint_group_positions.end(), joint_values.begin() ));
+
+  return true;
+}
+
+bool allowPanelCollisions(ros::NodeHandle& nh, const std::vector<std::string>& links, const std::string& link, bool allow)
+{
+
+  robot_model_loader::RobotModelLoader robot_model_loader ( "robot_description" );
+  robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
+  planning_scene::PlanningScene planning_scene ( kinematic_model );
+  collision_detection::AllowedCollisionMatrix acm = planning_scene.getAllowedCollisionMatrix();
+
+  for ( auto l : links)
+    acm.setEntry(l,link,allow);
+
+  std::vector<std::string> names;
+  acm.getAllEntryNames(names);
+
+  for (auto n : names)
+    std::cout<<n<<std::endl;
+
+  moveit_msgs::AllowedCollisionMatrix acm_msg;
+
+  acm.getMessage(acm_msg);
+
+  ros::Publisher planning_scene_diff_publisher = nh.advertise<moveit_msgs::PlanningScene> ( "planning_scene", 1 );
+
+  while ( planning_scene_diff_publisher.getNumSubscribers() < 1 )
+  {
+      ros::WallDuration sleep_t ( 0.5 );
+      sleep_t.sleep();
+  }
+
+  moveit_msgs::PlanningScene planning_scene_msg;
+
+  planning_scene_msg.is_diff = true;
+  planning_scene_msg.allowed_collision_matrix = acm_msg;
+
+  planning_scene_diff_publisher.publish ( planning_scene_msg );
+  ros::Duration ( 1.0 ).sleep();
+
+  getPlanningScene ( nh, planning_scene );
+
+  return true;
+
 }
 
 
