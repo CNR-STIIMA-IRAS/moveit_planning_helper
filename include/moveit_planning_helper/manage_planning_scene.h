@@ -43,32 +43,32 @@
 namespace moveit_planning_helper
 {
 
-  const std::map< int, std::string >& getMoveitErrorCodesIds( )
+  inline const std::map< int, std::string >& getMoveitErrorCodesIds( )
   {
-    static std::map< int, std::string > ret {   {  1,      "SUCCESS                                      "}
-                                            ,   {  99999,  "FAILURE                                      "}
-                                            ,   {  1,      "PLANNING_FAILED                              "}
-                                            ,   {  2,      "INVALID_MOTION_PLAN                          "}
-                                            ,   {  3,      "MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE"}
-                                            ,   {  4,      "CONTROL_FAILED                               "}
-                                            ,   {  5,      "UNABLE_TO_AQUIRE_SENSOR_DATA                 "}
-                                            ,   {  6,      "TIMED_OUT                                    "}
-                                            ,   {  7,      "PREEMPTED                                    "}
-                                            ,   {  10,     "START_STATE_IN_COLLISION                     "}
-                                            ,   {  11,     "START_STATE_VIOLATES_PATH_CONSTRAINTS        "}
-                                            ,   {  12,     "GOAL_IN_COLLISION                            "}
-                                            ,   {  13,     "GOAL_VIOLATES_PATH_CONSTRAINTS               "}
-                                            ,   {  14,     "GOAL_CONSTRAINTS_VIOLATED                    "}
-                                            ,   {  15,     "INVALID_GROUP_NAME                           "}
-                                            ,   {  16,     "INVALID_GOAL_CONSTRAINTS                     "}
-                                            ,   {  17,     "INVALID_ROBOT_STATE                          "}
-                                            ,   {  18,     "INVALID_LINK_NAME                            "}
-                                            ,   {  19,     "INVALID_OBJECT_NAME                          "}
-                                            ,   {  21,     "FRAME_TRANSFORM_FAILURE                      "}
-                                            ,   {  22,     "COLLISION_CHECKING_UNAVAILABLE               "}
-                                            ,   {  23,     "ROBOT_STATE_STALE                            "}
-                                            ,   {  24,     "SENSOR_INFO_STALE                            "}
-                                            ,   {  31,     "NO_IK_SOLUTION                               "}
+    static std::map< int, std::string > ret {   {   1,      "SUCCESS                                      "}
+                                            ,   {  99999,   "FAILURE                                      "}
+                                            ,   {  -1,      "PLANNING_FAILED                              "}
+                                            ,   {  -2,      "INVALID_MOTION_PLAN                          "}
+                                            ,   {  -3,      "MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE"}
+                                            ,   {  -4,      "CONTROL_FAILED                               "}
+                                            ,   {  -5,      "UNABLE_TO_AQUIRE_SENSOR_DATA                 "}
+                                            ,   {  -6,      "TIMED_OUT                                    "}
+                                            ,   {  -7,      "PREEMPTED                                    "}
+                                            ,   {  -10,     "START_STATE_IN_COLLISION                     "}
+                                            ,   {  -11,     "START_STATE_VIOLATES_PATH_CONSTRAINTS        "}
+                                            ,   {  -12,     "GOAL_IN_COLLISION                            "}
+                                            ,   {  -13,     "GOAL_VIOLATES_PATH_CONSTRAINTS               "}
+                                            ,   {  -14,     "GOAL_CONSTRAINTS_VIOLATED                    "}
+                                            ,   {  -15,     "INVALID_GROUP_NAME                           "}
+                                            ,   {  -16,     "INVALID_GOAL_CONSTRAINTS                     "}
+                                            ,   {  -17,     "INVALID_ROBOT_STATE                          "}
+                                            ,   {  -18,     "INVALID_LINK_NAME                            "}
+                                            ,   {  -19,     "INVALID_OBJECT_NAME                          "}
+                                            ,   {  -21,     "FRAME_TRANSFORM_FAILURE                      "}
+                                            ,   {  -22,     "COLLISION_CHECKING_UNAVAILABLE               "}
+                                            ,   {  -23,     "ROBOT_STATE_STALE                            "}
+                                            ,   {  -24,     "SENSOR_INFO_STALE                            "}
+                                            ,   {  -31,     "NO_IK_SOLUTION                               "}
                                             };
     return ret;
   }
@@ -109,6 +109,7 @@ template<> inline std::string to_string<>( const std::vector< std::string >& v
 
   return ret;
 }
+
 template <typename T>
 std::string to_string_with_precision(const T a_value, const int n = 6)
 {
@@ -132,6 +133,19 @@ template< typename T > std::string to_string_keys ( const std::map< std::string,
 
   return ret;
 }
+
+
+
+
+std::ostream& operator<<(std::ostream& stream, const Eigen::Affine3d& affine);
+std::ostream& operator<<(std::ostream& stream, const tf::Transform& transform);
+std::string to_string(const tf::Pose& pose);
+std::string to_string(const geometry_msgs::Pose& pose);
+std::string to_string(const Eigen::Affine3d& affine);
+
+
+
+std::string to_string( const collision_detection::AllowedCollisionMatrix& acm );
 /**
  * @fn getJointPositions
  * @param const moveit::core::RobotState& robot_state
@@ -173,12 +187,12 @@ robot_state::RobotState getRobotState( ros::NodeHandle&                         
  * @fn getPlanningScene
  * 
  */
-void getPlanningScene (ros::NodeHandle&                        nh
-                      , const std::string&                     ns
-                      , planning_scene::PlanningScenePtr       ret);
+void getPlanningScene ( ros::NodeHandle&              nh
+                      , const std::string&            ns
+                      , moveit_msgs::PlanningScene&   planning_scene_msgs);
 
-void getPlanningScene ( ros::NodeHandle& nh
-                      , planning_scene::PlanningScene& ret );
+void getPlanningScene ( ros::NodeHandle&                  nh
+                      , planning_scene::PlanningScenePtr& ret );
 
 /**
  * @fn setRobotStateNH
@@ -193,11 +207,23 @@ bool setRobotStateNH( ros::NodeHandle&                          nh
 
 bool setRobotState(ros::NodeHandle& nh, const std::vector<double> &joint_values , moveit::planning_interface::MoveGroupInterface &move_group);
 
-std::shared_ptr< moveit_msgs::CollisionObject > toCollisionObject (const std::string     &collisionObjID
-                                                                  , const std::string     &path_to_mesh
-                                                                  , const std::string     &reference_frame
-                                                                  , const tf::Pose        &pose
-                                                                  , const Eigen::Vector3d  scale = { 1.0, 1.0, 1.0} );
+std::shared_ptr< moveit_msgs::CollisionObject > toCollisionObject ( const std::string&          collisionObjID
+                                                                  , const std::string&          path_to_mesh
+                                                                  , const std::string&          reference_frame
+                                                                  , const tf::Pose&             pose
+                                                                  , const Eigen::Vector3d       scale = { 1.0, 1.0, 1.0} );
+
+std::shared_ptr< moveit_msgs::CollisionObject > toCollisionObject ( const std::string&          collisionObjID
+                                                                  , const std::string&          path_to_mesh
+                                                                  , const std::string&          reference_frame
+                                                                  , const geometry_msgs::Pose&  pose 
+                                                                  , const Eigen::Vector3d       scale = { 1.0, 1.0, 1.0} );
+
+std::shared_ptr< moveit_msgs::CollisionObject > toCollisionObject ( const std::string&          collisionObjID
+                                                                  , const std::string&          path_to_mesh
+                                                                  , const std::string&          reference_frame
+                                                                  , const Eigen::Affine3d&      pose 
+                                                                  , const Eigen::Vector3d       scale = { 1.0, 1.0, 1.0} );
 
 
 bool applyAndCheckPS  (ros::NodeHandle nh
@@ -242,6 +268,16 @@ bool descartes( const geometry_msgs::Pose     &starting_pose
               , std::vector<double>   starting_point = std::vector<double>());
 
 bool allowPanelCollisions(ros::NodeHandle& nh, const std::vector<std::string>& links, const std::string& link, bool allow = true );
+
+bool manageCollisions ( ros::NodeHandle& nh
+                      , const robot_model::RobotModelConstPtr& robot_model
+                      , const std::vector<std::string>& links1
+                      , const std::vector<std::string>& links2
+                      , bool allow = true
+                      , bool verbose = false );
+
+bool  attachObj( const std::string ns, std::string object_id, std::string frame_id, std::string link, bool attach = true);
+
 /**
  * @class RobotStateExtended
  * 

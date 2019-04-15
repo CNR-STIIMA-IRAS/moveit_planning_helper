@@ -162,7 +162,9 @@ inline bool computeAccelerationVelocitySpline(trajectory_msgs::JointTrajectory& 
   }
 
   for (unsigned int iPnt=1;iPnt<(trj.points.size());iPnt++)
-    trj.points.at(iPnt).time_from_start=ros::Duration(trj.points.at(iPnt-1).time_from_start.toSec()+std::max(1.0e-5,trj.points.at(iPnt).time_from_start.toSec()-trj.points.at(iPnt-1).time_from_start.toSec()));
+    trj.points.at(iPnt).time_from_start = ros::Duration(trj.points.at(iPnt-1).time_from_start.toSec()
+                                        + std::max(1.0e-5
+                                                  , trj.points.at(iPnt).time_from_start.toSec()-trj.points.at(iPnt-1).time_from_start.toSec()));
 
   for  (unsigned int iAx=0;iAx<trj.points.at(0).positions.size();iAx++)
   {
