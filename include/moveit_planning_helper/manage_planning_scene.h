@@ -259,8 +259,8 @@ bool cartesian( const geometry_msgs::Pose                             &starting_
 
 
 
-bool descartes( const geometry_msgs::Pose     &starting_pose
-              , const geometry_msgs::Pose     &target_pose
+bool descartes( const geometry_msgs::Pose                                     &starting_pose
+              , const geometry_msgs::Pose                                     &target_pose
               , const std::vector<std::string>                                &joint_names
               , boost::shared_ptr<descartes_moveit::IkFastMoveitStateAdapter> &robot_model
               , descartes_planner::DensePlanner                               &planner
