@@ -200,7 +200,6 @@ inline bool computeAccelerationVelocitySpline(trajectory_msgs::JointTrajectory& 
   return true;
 }
 
-
 inline bool getTrajectoryFromParam(const ros::NodeHandle& nh, const std::string& trj_name, trajectory_msgs::JointTrajectory& trj)
 {
   std::vector<std::vector<double>> positions;
