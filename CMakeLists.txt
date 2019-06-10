@@ -13,6 +13,10 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   moveit_visual_tools
   actionlib_msgs
+  descartes_moveit
+  descartes_planner
+  descartes_utilities
+  cartesian_path_utils
 )
 
 add_action_files(
@@ -28,7 +32,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES moveit_planning_helper
- CATKIN_DEPENDS moveit_core roscpp eigen_matrix_utils     moveit_ros_planning  moveit_ros_planning_interface actionlib moveit_visual_tools actionlib_msgs
+ CATKIN_DEPENDS moveit_core roscpp eigen_matrix_utils cartesian_path_utils descartes_utilities descartes_planner descartes_moveit  moveit_ros_planning  moveit_ros_planning_interface actionlib moveit_visual_tools actionlib_msgs
  DEPENDS 
 )
 
