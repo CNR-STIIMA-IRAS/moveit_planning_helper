@@ -261,7 +261,7 @@ int main(int argc, char **argv)
       {
         goal.trajectory = approach_trj;
         ac.sendGoalAndWait(goal);
-        ros::Duration(3).sleep();
+        ros::Duration(2).sleep();
 
         start_log.call(srv);
         ros::Duration(1).sleep();
@@ -272,7 +272,7 @@ int main(int argc, char **argv)
       
       ros::Duration(extra_time).sleep();
       stop_log.call(srv);
-      ros::Duration(1).sleep();
+      ros::Duration(0.5).sleep();
     }
   }
 

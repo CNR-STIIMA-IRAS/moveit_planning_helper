@@ -161,7 +161,10 @@ void ExecuteTrajectoryFromParamAction( const moveit_planning_helper::ExecuteTraj
         ROS_WARN("trajectory is scaled to respect joint limit");
       }
       
-      move_group.setStartStateToCurrentState();
+
+      move_group.startStateMonitor(2);
+      move_group.setStartState(*move_group.getCurrentState());
+      //move_group.setStartStateToCurrentState();
       move_group.setJointValueTarget(initial_position);
       
       robot_trajectory::RobotTrajectory trajectory(move_group.getRobotModel(), group_name);
@@ -171,6 +174,7 @@ void ExecuteTrajectoryFromParamAction( const moveit_planning_helper::ExecuteTraj
         ROS_ERROR("Planning failed");
         return;
       }
+
       
       trajectory.setRobotTrajectoryMsg(trj_state, my_plan.trajectory_.joint_trajectory);
       trajectory_processing::IterativeSplineParameterization isp;
