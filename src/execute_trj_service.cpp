@@ -21,6 +21,7 @@
 
 std::shared_ptr<actionlib::SimpleActionServer<moveit_planning_helper::ExecuteTrajectoryFromParamAction>> as;
 ros::Publisher display_trj_pub;
+
 void ExecuteTrajectoryFromParamAction( const moveit_planning_helper::ExecuteTrajectoryFromParamGoalConstPtr& goal )
 {
   moveit_planning_helper::ExecuteTrajectoryFromParamResult result;

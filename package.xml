@@ -54,30 +54,32 @@
   <build_depend>eigen_matrix_utils</build_depend>
   <build_depend>moveit_ros_planning</build_depend>
   <build_depend>moveit_ros_planning_interface</build_depend>
+  <build_depend>subscription_notifier</build_depend>
+
   <build_export_depend>moveit_core</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>eigen_matrix_utils</build_export_depend>
   <build_export_depend>moveit_ros_planning</build_export_depend>
   <build_export_depend>moveit_ros_planning_interface</build_export_depend>
+
   <exec_depend>moveit_core</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>eigen_matrix_utils</exec_depend>
   <exec_depend>moveit_ros_planning</exec_depend>
   <exec_depend>moveit_ros_planning_interface</exec_depend>
-  
+
   <depend>actionlib</depend>
   <depend>message_generation</depend>
   <depend>moveit_visual_tools</depend>
   <depend>actionlib_msgs</depend>
-
   <depend>descartes_moveit</depend>
   <depend>descartes_planner</depend>
   <depend>descartes_utilities</depend>
   <depend>cartesian_path_utils</depend>
+
   
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
-
   </export>
 </package>
