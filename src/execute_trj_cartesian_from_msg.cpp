@@ -60,7 +60,7 @@ int main(int argc, char **argv)
     ROS_WARN("No parameter /group_name defined, chose 'manipulator' as default name");
   }
 
-  moveit::planning_interface::MoveGroupInterface group("ur10");
+  moveit::planning_interface::MoveGroupInterface group(group_name);
   moveit::planning_interface::MoveGroupInterface::Plan plan;
   group.setStartStateToCurrentState();
   group.setPlanningTime(10.0);
