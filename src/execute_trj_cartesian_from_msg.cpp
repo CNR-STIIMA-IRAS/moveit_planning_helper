@@ -49,12 +49,18 @@ int main(int argc, char **argv)
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
-  std::shared_ptr<ros_helper::SubscriptionNotifier<geometry_msgs::Pose>> m_scaling_in_sub;
-  m_scaling_in_sub.reset(new ros_helper::SubscriptionNotifier<geometry_msgs::Pose>(node_handle,"/prova_pose",1));
-  m_scaling_in_sub->setAdvancedCallback(&provaPoseCallback);
+  std::shared_ptr<ros_helper::SubscriptionNotifier<geometry_msgs::Pose>> m_pose_sub;
+  m_pose_sub.reset(new ros_helper::SubscriptionNotifier<geometry_msgs::Pose>(node_handle,"/cartesian_pose",1));
+  m_pose_sub->setAdvancedCallback(&provaPoseCallback);
 
-  //  moveit::planning_interface::MoveGroupInterface group("ur10");
-  moveit::planning_interface::MoveGroupInterface group("ur5");
+  std::string group_name;
+  if (!node_handle.getParam("/group_name", group_name))
+  {
+    group_name = "manipulator";
+    ROS_WARN("No parameter /group_name defined, chose 'manipulator' as default name");
+  }
+
+  moveit::planning_interface::MoveGroupInterface group(group_name);
   moveit::planning_interface::MoveGroupInterface::Plan plan;
   group.setStartStateToCurrentState();
   group.setPlanningTime(10.0);

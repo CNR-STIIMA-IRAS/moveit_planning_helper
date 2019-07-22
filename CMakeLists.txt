@@ -81,9 +81,9 @@ target_link_libraries(override_manager
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
-add_executable(test_cartesian src/test_cartesian.cpp)
-add_dependencies(test_cartesian ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(test_cartesian
+add_executable(execute_trj_cartesian_from_msg src/execute_trj_cartesian_from_msg.cpp)
+add_dependencies(execute_trj_cartesian_from_msg ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(execute_trj_cartesian_from_msg
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
