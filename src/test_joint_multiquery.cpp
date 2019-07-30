@@ -52,16 +52,9 @@ int main(int argc, char **argv)
   m_pose_sub->setAdvancedCallback(&provaPoseCallback);
 
   moveit::planning_interface::MoveGroupInterface group("ur10");
-<<<<<<< HEAD
-
-//  group.setStartStateToCurrentState();
   group.setStartState(*group.getCurrentState());
 
-
-=======
-  group.setStartStateToCurrentState();
   group.setPlanningTime(10.0);
->>>>>>> 2789a9725696f9735c5de3b29f742869fee8326d
 
 
   std::vector<std::vector<double>> waypoints;
