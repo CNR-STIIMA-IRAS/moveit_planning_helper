@@ -27,7 +27,9 @@ int main(int argc, char **argv)
   spinner.start();
 
   moveit::planning_interface::MoveGroupInterface group("ur10");
-  group.setStartStateToCurrentState();
+
+//  group.setStartStateToCurrentState();
+  group.setStartState(*group.getCurrentState());
 
 
 
