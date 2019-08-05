@@ -52,7 +52,8 @@ int main(int argc, char **argv)
   m_pose_sub->setAdvancedCallback(&provaPoseCallback);
 
   moveit::planning_interface::MoveGroupInterface group("ur10");
-  group.setStartStateToCurrentState();
+  group.setStartState(*group.getCurrentState());
+
   group.setPlanningTime(10.0);
 
 
