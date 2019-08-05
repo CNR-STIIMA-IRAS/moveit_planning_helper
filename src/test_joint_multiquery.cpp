@@ -57,9 +57,18 @@ int main(int argc, char **argv)
 
 
   std::vector<std::vector<double>> waypoints;
-  std::vector<double> joint_conf1(6,0); // [0,0,0,0,0,0]
-  waypoints.push_back(joint_conf1);
+//  std::vector<double> joint_conf1(6,0); // [0,0,0,0,0,0]
+//  waypoints.push_back(joint_conf1);
 
+
+  target_pose.position = group.getCurrentJointValues();
+  ROS_INFO("Current pose:");
+  ROS_INFO("Position joint1: %.2f", target_pose.position.at(0));
+  ROS_INFO("Position joint2: %.2f", target_pose.position.at(1));
+  ROS_INFO("Position joint3: %.2f", target_pose.position.at(2));
+  ROS_INFO("Position joint4: %.2f", target_pose.position.at(3));
+  ROS_INFO("Position joint5: %.2f", target_pose.position.at(4));
+  ROS_INFO("Position joint6: %.2f", target_pose.position.at(5));
 
 
 
