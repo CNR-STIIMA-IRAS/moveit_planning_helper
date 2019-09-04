@@ -291,6 +291,20 @@ void getPlanningScene ( ros::NodeHandle& nh
     planning_scene_msgs.name = response.scene.name;
     planning_scene_msgs.robot_state = response.scene.robot_state;
   }
+  {
+    /// COLLISION_OBJECTS
+    moveit_msgs::GetPlanningScene::Request request;
+    moveit_msgs::GetPlanningScene::Response response;
+
+    request.components.components = request.components.ROBOT_STATE_ATTACHED_OBJECTS;
+    if ( !planning_scene_service.call ( request, response ) )
+    {
+        ROS_WARN ( "Could not call planning scene service to get object names" );
+    }
+
+
+    planning_scene_msgs.robot_state.attached_collision_objects = response.scene.robot_state.attached_collision_objects;
+  }
   { // WORLD_OBJECT_GEOMETRY && WORLD_OBJECT_NAMES
     moveit_msgs::GetPlanningScene::Request request;
     moveit_msgs::GetPlanningScene::Response response;
@@ -389,6 +403,20 @@ void getPlanningScene   ( ros::NodeHandle& nh
 
         planning_scene_msgs.name = response.scene.name;
         planning_scene_msgs.robot_state = response.scene.robot_state;
+    }
+    {
+        /// COLLISION_OBJECTS
+        moveit_msgs::GetPlanningScene::Request request;
+        moveit_msgs::GetPlanningScene::Response response;
+
+        request.components.components = request.components.ROBOT_STATE_ATTACHED_OBJECTS;
+        if ( !planning_scene_service.call ( request, response ) )
+        {
+            ROS_WARN ( "Could not call planning scene service to get object names" );
+        }
+
+
+        planning_scene_msgs.robot_state.attached_collision_objects = response.scene.robot_state.attached_collision_objects;
     }
     {
         // WORLD_OBJECT_GEOMETRY && WORLD_OBJECT_NAMES
