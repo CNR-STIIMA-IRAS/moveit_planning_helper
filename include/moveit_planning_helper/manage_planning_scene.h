@@ -140,8 +140,9 @@ template< typename T > std::string to_string_keys ( const std::map< std::string,
 std::ostream& operator<<(std::ostream& stream, const Eigen::Affine3d& affine);
 std::ostream& operator<<(std::ostream& stream, const tf::Transform& transform);
 std::string to_string(const tf::Pose& pose);
-std::string to_string(const geometry_msgs::Pose& pose);
-std::string to_string(const Eigen::Affine3d& affine);
+std::string to_string(const geometry_msgs::Pose&  pose);
+std::string to_string(const Eigen::Affine3d&      pose);
+std::string to_string(const Eigen::Isometry3d&    pose);
 
 
 

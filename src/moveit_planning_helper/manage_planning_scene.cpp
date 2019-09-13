@@ -65,22 +65,31 @@ std::ostream& operator<<(std::ostream& stream, const tf::Transform& transform)
 std::string to_string(const geometry_msgs::Pose& pose)
 {
   std::stringstream str;
-  Eigen::Affine3d affine;
+  Eigen::Isometry3d affine;
   tf::poseMsgToEigen( pose, affine );
   str << affine;
   return str.str();
 }
 
-std::string to_string(const Eigen::Affine3d& affine)
+std::string to_string(const Eigen::Affine3d& pose)
 {
+  Eigen::IOFormat CleanFmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
   std::stringstream str;
-  str << affine;
+  str.precision(4);
+  str << std::setw(7) << std::setfill(' ') << std::fixed << std::right << pose.matrix().format(CleanFmt);;
   return str.str();
 }
+std::string to_string(const Eigen::Isometry3d &pose)
+{
+  Eigen::IOFormat CleanFmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
+  std::stringstream str;
+  str.precision(4);
+  str << std::setw(7) << std::setfill(' ') << std::fixed << std::right << pose.matrix().format(CleanFmt);;
+  return str.str();}
 
 std::string to_string(const tf::Pose& transform)
 {
-  Eigen::Affine3d affine;
+  Eigen::Isometry3d affine;
   tf::transformTFToEigen( transform, affine );
   return to_string( affine );
 }
