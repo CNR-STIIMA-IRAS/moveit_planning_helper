@@ -42,25 +42,43 @@ namespace moveit_planning_helper
 
 
 
-std::ostream& operator<<(std::ostream& stream, const Eigen::Affine3d& affine)
+std::ostream& operator<<(std::ostream& stream, const Eigen::Isometry3d& pose)
 {
-  Eigen::Quaterniond q( affine.linear() );
+  Eigen::IOFormat CleanFmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
+  Eigen::Quaterniond q( pose.linear() );
   stream.precision(6);
   stream.width (7);
-  stream << "\e[1mRotation:\e[0m"    << std::endl << std::fixed << affine.rotation() << std::endl;
-  stream << "\e[1mQuaternion:\e[0m"  << std::endl << std::fixed << "x: "<< q.x() << " z: "<< q.y() << " z: "<< q.z() << " w: "<< q.w() << std::endl;
-  stream << "\e[1mTranslation:\e[0m" << std::endl << std::fixed << affine.translation().transpose() << std::endl;
-
+//stream << "\e[1mRotation:\e[0m"    << std::endl << std::setfill(' ') << std::fixed << std::right << pose.linear().format(CleanFmt) << std::endl;
+  stream << "\e[1mQuaternion:\e[0m"  << std::fixed << "[ x: "<< q.x() << " y: "<< q.y() << " z: "<< q.z() << " w: "<< q.w() << " ], ";
+  stream << "\e[1mTranslation:\e[0m" << std::fixed << pose.translation().transpose().format(CleanFmt)  << std::endl;
   return stream;
 }
+
+
+std::ostream& operator<<(std::ostream& stream, const Eigen::Affine3d& pose)
+{
+  Eigen::Isometry3d pp; pp.linear() = pose.linear(); pp.translation() = pose.translation();
+  stream << pp;
+  return stream;
+}
+
 
 std::ostream& operator<<(std::ostream& stream, const tf::Transform& transform)
 {
-  Eigen::Affine3d affine;
-  tf::transformTFToEigen( transform, affine );
-  stream << affine;
+  Eigen::Isometry3d pose;
+  tf::transformTFToEigen( transform, pose);
+  stream << pose;
   return stream;
 }
+
+std::string to_string(const sensor_msgs::JointState& q)
+{
+  std::string ret;
+  for(size_t i=0; i< q.name.size(); i++)
+    ret += "\e[1m" + std::string( q.name[i] ) +":\e[0m " + std::to_string( q.position[i] ) + " ";
+  return ret;
+}
+
 
 std::string to_string(const geometry_msgs::Pose& pose)
 {
@@ -73,25 +91,20 @@ std::string to_string(const geometry_msgs::Pose& pose)
 
 std::string to_string(const Eigen::Affine3d& pose)
 {
-  Eigen::IOFormat CleanFmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
-  std::stringstream str;
-  str.precision(4);
-  str << std::setw(7) << std::setfill(' ') << std::fixed << std::right << pose.matrix().format(CleanFmt);;
+  std::stringstream str;  str << pose;
   return str.str();
 }
 std::string to_string(const Eigen::Isometry3d &pose)
 {
-  Eigen::IOFormat CleanFmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
-  std::stringstream str;
-  str.precision(4);
-  str << std::setw(7) << std::setfill(' ') << std::fixed << std::right << pose.matrix().format(CleanFmt);;
-  return str.str();}
+  std::stringstream str; str << pose;
+  return str.str();
+}
 
 std::string to_string(const tf::Pose& transform)
 {
-  Eigen::Isometry3d affine;
-  tf::transformTFToEigen( transform, affine );
-  return to_string( affine );
+  Eigen::Isometry3d pose;
+  tf::transformTFToEigen( transform, pose );
+  return to_string( pose );
 }
 
 void vecToTf ( std::vector<double> *pose ,tf::Pose& transform )
@@ -481,7 +494,7 @@ void getPlanningScene   ( ros::NodeHandle& nh
 
 bool setRobotStateNH( ros::NodeHandle&                          nh
                     , const moveit::core::RobotState&           robot_state
-                    , const moveit::core::RobotModelConstPtr    robot_model
+                    , const moveit::core::RobotModelConstPtr&   robot_model
                     , const std::string&                        group_name
                     , const std::string&                        ns )
 {
@@ -1232,28 +1245,138 @@ bool allowPanelCollisions(ros::NodeHandle& nh, const std::vector<std::string>& l
 
 }
 
-bool manageCollisions( ros::NodeHandle&                        nh
+void getAllowedCollisionMatrix( ros::NodeHandle&                              nh
+                              , const robot_model::RobotModelConstPtr&        robot_model
+                              , collision_detection::AllowedCollisionMatrix&  acm )
+{
+  planning_scene::PlanningScenePtr planning_scene( new planning_scene::PlanningScene( robot_model ) );
+
+  getPlanningScene ( nh, planning_scene );
+
+  const collision_detection::AllowedCollisionMatrix& _acm = planning_scene->getAllowedCollisionMatrix();
+  acm = _acm;
+}
+
+void getAllowedCollisionMatrix( ros::NodeHandle&                              nh
+                              , const robot_model::RobotModelConstPtr&        robot_model
+                              , moveit_msgs::AllowedCollisionMatrix& msg )
+{
+  collision_detection::AllowedCollisionMatrix acm;
+  getAllowedCollisionMatrix(nh, robot_model, acm);
+  acm.getMessage(msg);
+}
+
+bool setAllowedCollisionMatrix( ros::NodeHandle&                                     nh
+                              , const robot_model::RobotModelConstPtr&              robot_model
+                              , const collision_detection::AllowedCollisionMatrix&  acm
+                              , double timeout )
+{
+  planning_scene::PlanningScenePtr planning_scene( new planning_scene::PlanningScene( robot_model ) );
+
+  ros::Publisher planning_scene_diff_publisher = nh.advertise<moveit_msgs::PlanningScene> ( "planning_scene", 1 );
+
+  ros::Time st = ros::Time::now();
+  ros::Duration sleep_t ( 0.5 );
+  while ( planning_scene_diff_publisher.getNumSubscribers() < 1 )
+  {
+      if( (ros::Time::now() - st ).toSec() > timeout )
+      {
+        ROS_ERROR("None subscriber to '%s' has been appeared within %f sec of watchdog", planning_scene_diff_publisher.getTopic().c_str(), timeout);
+        return false;
+      }
+      sleep_t.sleep();
+  }
+
+  moveit_msgs::AllowedCollisionMatrix acm_msg;
+  acm.getMessage(acm_msg);
+
+  moveit_msgs::PlanningScene planning_scene_msg;
+
+  planning_scene_msg.is_diff = true;
+  planning_scene_msg.allowed_collision_matrix = acm_msg;
+
+  st = ros::Time::now();
+  do
+  {
+    planning_scene_diff_publisher.publish ( planning_scene_msg );
+
+    getPlanningScene( nh, planning_scene);
+
+    const collision_detection::AllowedCollisionMatrix& _acm = planning_scene->getAllowedCollisionMatrix();
+    bool ok = true;
+    std::vector<std::string> nn;
+    _acm.getAllEntryNames(nn);
+    for ( auto n1 : nn)
+    {
+      for ( auto n2 : nn)
+      {
+        collision_detection::AllowedCollision::Type allowed_collision_type1;
+        collision_detection::AllowedCollision::Type allowed_collision_type2;
+        if( _acm.getEntry(n1,n2,allowed_collision_type1) )
+        {
+          if( acm.getEntry(n1,n2,allowed_collision_type2) )
+          {
+            ok &=  allowed_collision_type1 == allowed_collision_type2;
+          }
+          else
+          {
+            ok = false;
+          }
+        }
+      }
+    }
+    if( ok )
+    {
+      break;
+    }
+
+    if( (ros::Time::now() - st).toSec() < 10.0)
+    {
+      ROS_FATAL("Timeout expired. Return false");
+      return false;
+    }
+  } while( ros::ok() );
+
+  return true;
+}
+
+bool setAllowedCollisionMatrix(ros::NodeHandle&                             nh
+                              , const robot_model::RobotModelConstPtr&      robot_model
+                              , const moveit_msgs::AllowedCollisionMatrix&  msg
+                              , double                                      timeout)
+{
+  collision_detection::AllowedCollisionMatrix  acm( msg );
+  return setAllowedCollisionMatrix(nh, robot_model, acm, timeout);
+}
+
+bool manageCollisions ( ros::NodeHandle&                         nh
                       , const robot_model::RobotModelConstPtr&  robot_model
                       , const std::vector<std::string>&         links1
                       , const std::vector<std::string>&         links2
                       , bool                                    allow
+                      , double                                  timeout
                       , bool                                    verbose )
 {
   planning_scene::PlanningScenePtr planning_scene( new planning_scene::PlanningScene( robot_model ) );
   
   ros::Publisher planning_scene_diff_publisher = nh.advertise<moveit_msgs::PlanningScene> ( "planning_scene", 1 );
-  
+  ros::Time st = ros::Time::now();
+  ros::Duration sleep_t ( 0.5 );
   while ( planning_scene_diff_publisher.getNumSubscribers() < 1 )
   {
-      ros::WallDuration sleep_t ( 0.5 );
+      if( (ros::Time::now() - st ).toSec() > timeout )
+      {
+        ROS_ERROR("None subscriber to '%s' has been appeared withint %f sec of watchdog", planning_scene_diff_publisher.getTopic().c_str(), timeout);
+        return false;
+      }
       sleep_t.sleep();
   }
 
-  ros::Time st = ros::Time::now();
+  st = ros::Time::now();
   getPlanningScene ( nh, planning_scene );
   
   
-  collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
+  collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrixNonConst();
   for ( auto l1 : links1)
   {
     for ( auto l2 : links2)
@@ -1278,7 +1401,7 @@ bool manageCollisions( ros::NodeHandle&                        nh
     
     getPlanningScene( nh, planning_scene);
     
-    collision_detection::AllowedCollisionMatrix nacm = planning_scene->getAllowedCollisionMatrix();
+    const collision_detection::AllowedCollisionMatrix& nacm = planning_scene->getAllowedCollisionMatrix();
     if(verbose )
       std::cout << to_string( nacm ) << std::endl;
     bool ok = true;

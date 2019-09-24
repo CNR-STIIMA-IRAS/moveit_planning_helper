@@ -136,10 +136,11 @@ template< typename T > std::string to_string_keys ( const std::map< std::string,
 
 
 
-
-std::ostream& operator<<(std::ostream& stream, const Eigen::Affine3d& affine);
-std::ostream& operator<<(std::ostream& stream, const tf::Transform& transform);
-std::string to_string(const tf::Pose& pose);
+std::ostream& operator<<(std::ostream& stream, const Eigen::Isometry3d&       pose);
+std::ostream& operator<<(std::ostream& stream, const Eigen::Affine3d&         pose);
+std::ostream& operator<<(std::ostream& stream, const tf::Transform&           pose);
+std::string to_string(const sensor_msgs::JointState& q);
+std::string to_string(const tf::Pose&             pose);
 std::string to_string(const geometry_msgs::Pose&  pose);
 std::string to_string(const Eigen::Affine3d&      pose);
 std::string to_string(const Eigen::Isometry3d&    pose);
@@ -199,12 +200,11 @@ void getPlanningScene ( ros::NodeHandle&                  nh
  * @fn setRobotStateNH
  * 
  */
-bool setRobotStateNH( ros::NodeHandle&                          nh
-                    , const moveit::core::RobotState&           robot_state
-                    , const moveit::core::RobotModelConstPtr    robot_model
-                    , const std::string&                        group_name
-                    , const std::string&                        ns    );
-
+bool setRobotStateNH( ros::NodeHandle&                        nh
+                    , const moveit::core::RobotState&         robot_state
+                    , const moveit::core::RobotModelConstPtr& robot_model
+                    , const std::string&                      group_name
+                    , const std::string&                      ns );
 
 bool setRobotState(ros::NodeHandle& nh, const std::vector<double> &joint_values , moveit::planning_interface::MoveGroupInterface &move_group);
 
@@ -270,11 +270,26 @@ bool descartes( const geometry_msgs::Pose                                     &s
 
 bool allowPanelCollisions(ros::NodeHandle& nh, const std::vector<std::string>& links, const std::string& link, bool allow = true );
 
+void getAllowedCollisionMatrix( ros::NodeHandle&                              nh
+                              , const robot_model::RobotModelConstPtr&        robot_model
+                              , collision_detection::AllowedCollisionMatrix&  acm);
+void getAllowedCollisionMatrix( ros::NodeHandle&                              nh
+                              , const robot_model::RobotModelConstPtr&        robot_model
+                              , moveit_msgs::AllowedCollisionMatrix&          msg);
+bool setAllowedCollisionMatrix(ros::NodeHandle&                              nh
+                              , const robot_model::RobotModelConstPtr&              robot_model
+                              , const collision_detection::AllowedCollisionMatrix&  acm
+                              , double timeout);
+bool setAllowedCollisionMatrix(ros::NodeHandle&                             nh
+                              , const robot_model::RobotModelConstPtr&      robot_model
+                              , const moveit_msgs::AllowedCollisionMatrix&  msg
+                              , double timeout);
 bool manageCollisions ( ros::NodeHandle& nh
                       , const robot_model::RobotModelConstPtr& robot_model
                       , const std::vector<std::string>& links1
                       , const std::vector<std::string>& links2
                       , bool allow = true
+                      , double timeout = 5.0
                       , bool verbose = false );
 
 bool  attachObj( const std::string ns, std::string object_id, std::string frame_id, std::string link, bool attach = true);
