@@ -1,4 +1,5 @@
-
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 #include <moveit_planning_helper/manage_planning_scene.h>
 #include <moveit_planning_helper/conversions.h>
 #include <numeric>
@@ -50,7 +51,7 @@ std::ostream& operator<<(std::ostream& stream, const Eigen::Isometry3d& pose)
   stream.width (7);
 //stream << "\e[1mRotation:\e[0m"    << std::endl << std::setfill(' ') << std::fixed << std::right << pose.linear().format(CleanFmt) << std::endl;
   stream << "\e[1mQuaternion:\e[0m"  << std::fixed << "[ x: "<< q.x() << " y: "<< q.y() << " z: "<< q.z() << " w: "<< q.w() << " ], ";
-  stream << "\e[1mTranslation:\e[0m" << std::fixed << pose.translation().transpose().format(CleanFmt)  << std::endl;
+  stream << "\e[1mTranslation:\e[0m" << std::fixed << pose.translation().transpose().format(CleanFmt);
   return stream;
 }
 
@@ -384,7 +385,6 @@ void getPlanningScene ( ros::NodeHandle& nh
   return;
 }
 
-
 void getPlanningScene   ( ros::NodeHandle& nh
                         , planning_scene::PlanningScenePtr& ret )
 {
@@ -392,7 +392,7 @@ void getPlanningScene   ( ros::NodeHandle& nh
     planning_scene_service = nh.serviceClient<moveit_msgs::GetPlanningScene> ( "get_planning_scene" );
     if ( !planning_scene_service.waitForExistence ( ros::Duration ( 5.0 ) ) )
     {
-        ROS_ERROR ( "getPlanningScene Failed: service 'get_planning_scene ' does not exist" );
+        ROS_ERROR ( "getPlanningScene Failed: service '%s/get_planning_scene' does not exist", nh.getNamespace().c_str() );
     }
 
     moveit_msgs::PlanningScene planning_scene_msgs;
@@ -1357,6 +1357,7 @@ bool manageCollisions ( ros::NodeHandle&                         nh
                       , double                                  timeout
                       , bool                                    verbose )
 {
+
   planning_scene::PlanningScenePtr planning_scene( new planning_scene::PlanningScene( robot_model ) );
   
   ros::Publisher planning_scene_diff_publisher = nh.advertise<moveit_msgs::PlanningScene> ( "planning_scene", 1 );
@@ -1472,5 +1473,125 @@ std::string to_string( const collision_detection::AllowedCollisionMatrix& acm )
   return ret;
 }
 
+
+bool loadPlanningSceneMonitor ( planning_scene_monitor::PlanningSceneMonitorPtr& psm
+                              , const std::string& robot_description
+                              , const std::string& scene_name
+                              , const std::string& joint_states_topic
+                              , const std::string& attached_objects_topic
+                              , const std::string& planning_scene_topic
+                              , const std::string& monitored_planning_scene_topic )
+{
+  // Check if we already have one
+  if (psm)
+  {
+    ROS_WARN_STREAM("Will not load a new planning scene monitor when one has already been set.");
+    return false;
+  }
+  ROS_DEBUG_STREAM("Loading planning scene monitor");
+
+  // Create tf transform buffer and listener
+  std::shared_ptr<tf2_ros::Buffer>            tf_buffer   = std::make_shared<tf2_ros::Buffer>();
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+
+  // Regular version b/c the other one causes problems with recognizing end effectors
+  psm.reset(new planning_scene_monitor::PlanningSceneMonitor(robot_description, tf_buffer, scene_name));
+
+  ros::spinOnce();
+  ros::Duration(0.1).sleep();
+  ros::spinOnce();
+
+  if (psm->getPlanningScene())
+  {
+    // Optional monitors to start:
+    psm->startWorldGeometryMonitor    ( );
+    psm->startSceneMonitor            ( monitored_planning_scene_topic );
+    psm->startStateMonitor            (joint_states_topic, attached_objects_topic );
+    psm->startPublishingPlanningScene (planning_scene_monitor::PlanningSceneMonitor::UPDATE_SCENE, planning_scene_topic);
+    ROS_DEBUG_STREAM("Publishing planning scene on " << planning_scene_topic);
+
+    planning_scene_monitor::LockedPlanningSceneRW planning_scene(psm);
+    planning_scene->setName(scene_name);
+  }
+  else
+  {
+    ROS_ERROR_STREAM("Planning scene not configured");
+    return false;
+  }
+
+  ros::spinOnce();
+  return true;
+}
+
+
+bool isStateValid ( const planning_scene::PlanningScene*  planning_scene
+                  , bool                                  only_check_self_collision
+                  , robot_state::RobotState*              robot_state
+                  , const robot_state::JointModelGroup*   group
+                  , const double*                         ik_solution)
+{
+
+  // Apply IK solution to robot state
+  robot_state->setJointGroupPositions(group, ik_solution);
+  robot_state->update();
+
+  if (!planning_scene)
+  {
+    ROS_ERROR_STREAM("No planning scene provided");
+    return false;
+  }
+  if (only_check_self_collision)
+  {
+    // No easy API exists for only checking self-collision, so we do it here.
+    // TODO(davetcoleman): move this into planning_scene.cpp
+    collision_detection::CollisionRequest req;
+    req.verbose = true;
+    req.group_name = group->getName();
+    collision_detection::CollisionResult res;
+    planning_scene->checkSelfCollision(req, res, *robot_state);
+    if (!res.collision)
+    {
+      return true;  // not in collision
+    }
+  }
+  else if (!planning_scene->isStateColliding(*robot_state, group->getName()))
+  {
+    return true;  // not in collision
+  }
+
+  return false;
+}
+
+
+void solveIK  ( Eigen::Isometry3d&                pose
+              , moveit::core::RobotStatePtr&      robot_state
+              , const planning_scene_monitor::PlanningSceneMonitorPtr&    psm
+              , const bool                        use_collision_checking
+              , const bool                        only_check_self_collision
+              , const double                      timeout )
+{
+
+  // Optionally collision check
+  moveit::core::GroupStateValidityCallbackFn constraint_fn;
+  if (use_collision_checking)
+  {
+    // TODO(davetcoleman): this is currently not working, the locking seems to cause segfaults
+    boost::scoped_ptr<planning_scene_monitor::LockedPlanningSceneRO> ls;
+    ls.reset(new planning_scene_monitor::LockedPlanningSceneRO(psm));
+    constraint_fn = boost::bind ( &isStateValid
+                                , static_cast<const planning_scene::PlanningSceneConstPtr&>(*ls).get()
+                                , only_check_self_collision
+                                ,  _1, _2, _3);
+  }
+
+  moveit::core::JointModelGroup*  jmg;
+  moveit::core::LinkModel*        ee_link;
+
+  // Attempt to set robot to new pose
+  if (robot_state->setFromIK(jmg, pose, ee_link->getName(), timeout, constraint_fn))
+  {
+    robot_state->update();
+  }
+}
 
 }
