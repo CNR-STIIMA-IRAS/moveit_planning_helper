@@ -18,7 +18,7 @@
 #include <std_srvs/Empty.h>
 
 #include <moveit_planning_helper/manage_trajectories.h>
-
+#include <regex>
 int main(int argc, char **argv)
 {
 
@@ -186,7 +186,10 @@ int main(int argc, char **argv)
       if (save_time == true)
       {
         log_name = log_name + "_" + std::to_string(t0.sec);
+
       }
+      log_name = std::regex_replace(log_name, std::regex("/"), "_");
+
 
       nh.setParam("/binary_logger/test_name", log_name + "_rep" + std::to_string(irep + 1));
 

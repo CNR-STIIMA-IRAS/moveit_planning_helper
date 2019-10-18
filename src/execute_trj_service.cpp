@@ -24,6 +24,7 @@ ros::Publisher display_trj_pub;
 
 void ExecuteTrajectoryFromParamAction( const moveit_planning_helper::ExecuteTrajectoryFromParamGoalConstPtr& goal )
 {
+  ROS_INFO("new goal");
   moveit_planning_helper::ExecuteTrajectoryFromParamResult result;
   result.ok=false;
   ros::NodeHandle nh;
@@ -245,7 +246,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   ros::AsyncSpinner spinner(4);
   spinner.start();
-  as.reset(new actionlib::SimpleActionServer<moveit_planning_helper::ExecuteTrajectoryFromParamAction>(nh,"/execute_trajectories_from_param",ExecuteTrajectoryFromParamAction,true ));
+  as.reset(new actionlib::SimpleActionServer<moveit_planning_helper::ExecuteTrajectoryFromParamAction>(nh,"/execute_trajectories_from_param",ExecuteTrajectoryFromParamAction,false ));
   as->start();                                                                                                   
   
   display_trj_pub=nh.advertise<moveit_msgs::DisplayTrajectory>("rosdyn/simulated_trajectory",1,true);

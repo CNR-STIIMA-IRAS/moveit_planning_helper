@@ -76,6 +76,12 @@ target_link_libraries(execute_trj_service
   ${catkin_LIBRARIES}
 )
 
+add_executable(ptp_action_server src/ptp_action_server.cpp)
+add_dependencies(ptp_action_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(ptp_action_server
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 add_executable(execute_trj_from_param src/execute_trj_from_param.cpp)
 add_dependencies(execute_trj_from_param ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(execute_trj_from_param
@@ -102,6 +108,7 @@ target_link_libraries(test_joint_multiquery
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
+
 
 install(TARGETS ${PROJECT_NAME} execute_trj_move_group execute_trj_service execute_trj_from_param override_manager
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
