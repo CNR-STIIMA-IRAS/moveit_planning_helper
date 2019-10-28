@@ -137,7 +137,7 @@ int main(int argc, char **argv)
   {
     executed_trjs.push_back(trj_name);
   }
-
+  planning_scene::PlanningScene planning_scene(move_group.getRobotModel());
   move_group.startStateMonitor();
   moveit::core::RobotState trj_state = *move_group.getCurrentState();
 
@@ -219,6 +219,12 @@ int main(int argc, char **argv)
         trj_state.setJointGroupPositions(group_name, initial_position);
         robot_trajectory::RobotTrajectory trajectory(move_group.getRobotModel(), group_name);
         trajectory.setRobotTrajectoryMsg(trj_state, trj);
+        if (!planning_scene.isPathValid(trajectory,group_name))
+        {
+          ROS_ERROR("%s: trjectory path is invalid ",trj_name.c_str());
+          continue;
+        }
+
         if (rescale)
         {
           trajectory_processing::IterativeSplineParameterization isp;
@@ -233,6 +239,7 @@ int main(int argc, char **argv)
       {
         ROS_WARN("trajectory is scaled to respect joint limit");
       }
+
 
       move_group.setStartStateToCurrentState();
       move_group.setJointValueTarget(initial_position);
