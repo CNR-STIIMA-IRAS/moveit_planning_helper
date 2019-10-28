@@ -28,6 +28,7 @@
 #include <moveit_msgs/ObjectColor.h>
 
 #include <moveit/planning_scene/planning_scene.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
 
@@ -39,6 +40,18 @@
 #include <descartes_utilities/ros_conversions.h>
 #include <cartesian_path_utils/cartesian_path_utils.h>
 
+static const std::string ROBOT_DESCRIPTION                        = "robot_description";          /// this is the default used in ROS
+static const std::string DISPLAY_PLANNED_PATH_TOPIC               = "/move_group/display_planned_path";  /// this is the default when adding the Rviz plugin
+static const std::string DISPLAY_ROBOT_STATE_TOPIC                = "display_robot_state";        /// this is the default when adding the Rviz plugin
+static const std::string DEFAULT_JOINT_STATES_TOPIC               = "/joint_states";              /// The name of the topic used by default for receiving joint states
+static const std::string DEFAULT_ATTACHED_COLLISION_OBJECT_TOPIC  = "/attached_collision_object"; /// The name of the topic used by default for attached collision objects
+static const std::string DEFAULT_COLLISION_OBJECT_TOPIC           = "/collision_object";          /// The name of the topic used by default for receiving collision objects in the world
+static const std::string DEFAULT_PLANNING_SCENE_WORLD_TOPIC       = "/planning_scene_world";      /// The name of the topic used by default for receiving geometry information about a planning scene (complete
+                                                                                                  /// overwrite of world geometry)
+static const std::string DEFAULT_PLANNING_SCENE_TOPIC             = "/planning_scene";            /// The name of the topic used by default for receiving full planning scenes or planning scene diffs
+static const std::string DEFAULT_PLANNING_SCENE_SERVICE           = "/get_planning_scene";        /// The name of the service used by default for requesting full planning scene state
+static const std::string MONITORED_PLANNING_SCENE_TOPIC           = "monitored_planning_scene";   /// The name of the topic used by default for publishing the monitored planning scene (this is without "/" in the
+                                                                                                  /// name, so the topic is prefixed by the node name)
 
 namespace moveit_planning_helper
 {
@@ -136,12 +149,14 @@ template< typename T > std::string to_string_keys ( const std::map< std::string,
 
 
 
-
-std::ostream& operator<<(std::ostream& stream, const Eigen::Affine3d& affine);
-std::ostream& operator<<(std::ostream& stream, const tf::Transform& transform);
-std::string to_string(const tf::Pose& pose);
-std::string to_string(const geometry_msgs::Pose& pose);
-std::string to_string(const Eigen::Affine3d& affine);
+std::ostream& operator<<(std::ostream& stream, const Eigen::Isometry3d&       pose);
+std::ostream& operator<<(std::ostream& stream, const Eigen::Affine3d&         pose);
+std::ostream& operator<<(std::ostream& stream, const tf::Transform&           pose);
+std::string to_string(const sensor_msgs::JointState& q);
+std::string to_string(const tf::Pose&             pose);
+std::string to_string(const geometry_msgs::Pose&  pose);
+std::string to_string(const Eigen::Affine3d&      pose);
+std::string to_string(const Eigen::Isometry3d&    pose);
 
 
 
@@ -175,6 +190,28 @@ bool getParam( const ros::NodeHandle&   nh
              , geometry_msgs::Pose&     pose
              , std::string              param = "pose-geometry-msg" );
 
+bool loadPlanningSceneMonitor ( planning_scene_monitor::PlanningSceneMonitorPtr& psm
+                              , const std::string& robot_description
+                              , const std::string& scene_name
+                              , const std::string& joint_states_topic             = DEFAULT_JOINT_STATES_TOPIC
+                              , const std::string& attached_objects_topic         = DEFAULT_ATTACHED_COLLISION_OBJECT_TOPIC
+                              , const std::string& planning_scene_topic           = DEFAULT_PLANNING_SCENE_TOPIC
+                              , const std::string& monitored_planning_scene_topic = MONITORED_PLANNING_SCENE_TOPIC);
+
+bool isStateValid (const planning_scene::PlanningScene*  planning_scene
+                  , bool                                  only_check_self_collision
+                  , robot_state::RobotState*              robot_state
+                  , const robot_state::JointModelGroup*   group
+                  , const double*                         ik_solution);
+
+
+void solveIK  ( Eigen::Isometry3d&                                     pose
+              , moveit::core::RobotStatePtr&                           robot_state
+              , const planning_scene_monitor::PlanningSceneMonitorPtr& psm
+              , const bool                                             use_collision_checking
+              , const bool                                             only_check_self_collision
+              , const double                                           timeout );
+
 /**
  * @fn getRobotStateNH
  * 
@@ -198,12 +235,11 @@ void getPlanningScene ( ros::NodeHandle&                  nh
  * @fn setRobotStateNH
  * 
  */
-bool setRobotStateNH( ros::NodeHandle&                          nh
-                    , const moveit::core::RobotState&           robot_state
-                    , const moveit::core::RobotModelConstPtr    robot_model
-                    , const std::string&                        group_name
-                    , const std::string&                        ns    );
-
+bool setRobotStateNH( ros::NodeHandle&                        nh
+                    , const moveit::core::RobotState&         robot_state
+                    , const moveit::core::RobotModelConstPtr& robot_model
+                    , const std::string&                      group_name
+                    , const std::string&                      ns );
 
 bool setRobotState(ros::NodeHandle& nh, const std::vector<double> &joint_values , moveit::planning_interface::MoveGroupInterface &move_group);
 
@@ -269,11 +305,26 @@ bool descartes( const geometry_msgs::Pose                                     &s
 
 bool allowPanelCollisions(ros::NodeHandle& nh, const std::vector<std::string>& links, const std::string& link, bool allow = true );
 
+void getAllowedCollisionMatrix( ros::NodeHandle&                              nh
+                              , const robot_model::RobotModelConstPtr&        robot_model
+                              , collision_detection::AllowedCollisionMatrix&  acm);
+void getAllowedCollisionMatrix( ros::NodeHandle&                              nh
+                              , const robot_model::RobotModelConstPtr&        robot_model
+                              , moveit_msgs::AllowedCollisionMatrix&          msg);
+bool setAllowedCollisionMatrix(ros::NodeHandle&                              nh
+                              , const robot_model::RobotModelConstPtr&              robot_model
+                              , const collision_detection::AllowedCollisionMatrix&  acm
+                              , double timeout);
+bool setAllowedCollisionMatrix(ros::NodeHandle&                             nh
+                              , const robot_model::RobotModelConstPtr&      robot_model
+                              , const moveit_msgs::AllowedCollisionMatrix&  msg
+                              , double timeout);
 bool manageCollisions ( ros::NodeHandle& nh
                       , const robot_model::RobotModelConstPtr& robot_model
                       , const std::vector<std::string>& links1
                       , const std::vector<std::string>& links2
                       , bool allow = true
+                      , double timeout = 5.0
                       , bool verbose = false );
 
 bool  attachObj( const std::string ns, std::string object_id, std::string frame_id, std::string link, bool attach = true);
@@ -323,7 +374,6 @@ public:
      * @param first_tentative_ik_seed_state seed for the ik
      * @param verbose
      */
-
     bool ikine( const kinematics::KinematicsBaseConstPtr&  ikine_solver // = robot_model->getJointModelGroup(kin_group)->getSolverInstance()
               , const geometry_msgs::Pose&                 pose
               , std::vector <std::vector <double> >*       solutions
