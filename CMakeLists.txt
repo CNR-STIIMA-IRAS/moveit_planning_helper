@@ -13,10 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   moveit_visual_tools
   actionlib_msgs
-  descartes_moveit
-  descartes_planner
-  descartes_utilities
-  cartesian_path_utils
   subscription_notifier
   configuration_msgs
 )
@@ -34,7 +30,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES moveit_planning_helper
- CATKIN_DEPENDS moveit_core roscpp eigen_matrix_utils cartesian_path_utils descartes_utilities descartes_planner descartes_moveit  moveit_ros_planning  moveit_ros_planning_interface actionlib moveit_visual_tools actionlib_msgs
+ CATKIN_DEPENDS moveit_core roscpp eigen_matrix_utils moveit_ros_planning  moveit_ros_planning_interface actionlib moveit_visual_tools actionlib_msgs
  DEPENDS 
 )
 
@@ -49,7 +45,6 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/iterative_time_parameterization.cpp
   src/${PROJECT_NAME}/manage_trajectories.cpp
   src/${PROJECT_NAME}/multiplugins_planner.cpp
-  src/${PROJECT_NAME}/manage_planning_scene.cpp
   src/${PROJECT_NAME}/spline_interpolator.cpp
 )
 
@@ -58,6 +53,14 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 add_executable(execute_trj_from_param_switch_ctrl src/execute_trj_from_param_switch_ctrl.cpp)
 add_dependencies(execute_trj_from_param_switch_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(execute_trj_from_param_switch_ctrl
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+
+add_executable(execute_trj_from_param_dwell_time src/execute_trj_from_param_dwell_time.cpp)
+add_dependencies(execute_trj_from_param_dwell_time ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(execute_trj_from_param_dwell_time
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
