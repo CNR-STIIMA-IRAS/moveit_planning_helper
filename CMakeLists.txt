@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_visual_tools
   actionlib_msgs
   subscription_notifier
-  configuration_msgs
   name_sorting
 )
 
