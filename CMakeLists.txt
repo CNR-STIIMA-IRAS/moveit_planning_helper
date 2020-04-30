@@ -47,23 +47,8 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/multiplugins_planner.cpp
   src/${PROJECT_NAME}/spline_interpolator.cpp
 )
-
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(execute_trj_from_param_switch_ctrl src/execute_trj_from_param_switch_ctrl.cpp)
-add_dependencies(execute_trj_from_param_switch_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(execute_trj_from_param_switch_ctrl
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-
-add_executable(execute_trj_from_param_dwell_time src/execute_trj_from_param_dwell_time.cpp)
-add_dependencies(execute_trj_from_param_dwell_time ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(execute_trj_from_param_dwell_time
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
 
 add_executable(execute_trj_move_group src/execute_trj_moveit.cpp)
 add_dependencies(execute_trj_move_group ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
