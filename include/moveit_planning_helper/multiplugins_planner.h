@@ -27,9 +27,9 @@ namespace moveit_helper
     trajectory_processing::IterativeSplineParameterization m_isp;
     moveit::planning_interface::MoveGroupInterfacePtr m_move_group;
   public:
-    MultipluginsPlanner(const std::__cxx11::string& robot_description, 
-                        const std::__cxx11::string& group_name, 
-                        const std::vector< std::__cxx11::string >& plugins_name, 
+    MultipluginsPlanner(const std::string& robot_description, 
+                        const std::string& group_name, 
+                        const std::vector< std::string >& plugins_name, 
                         const ros::NodeHandle& nh);
     
   bool planJoint(const std::vector< double >& destination, trajectory_msgs::JointTrajectory& trj);
