@@ -1,8 +1,13 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.1)
+
 project(moveit_planning_helper)
 
-set(CMAKE_BUILD_TYPE Debug)
-add_definitions( -std=c++11 -funroll-loops -O3 )
+set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_definitions(-funroll-loops -O3 )
 
 find_package(catkin REQUIRED COMPONENTS
   moveit_core
