@@ -96,8 +96,7 @@ bool MultipluginsPlanner::planJoint(const std::vector< double >& destination, tr
   res.trajectory_->getRobotTrajectoryMsg(resulting_trajectory);
   trj=resulting_trajectory.joint_trajectory;
   
-  
-  
+  return true;
 }
 
 
