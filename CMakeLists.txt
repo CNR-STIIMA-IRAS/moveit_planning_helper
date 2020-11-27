@@ -98,7 +98,16 @@ target_link_libraries(test_joint_multiquery
 )
 
 
-install(TARGETS ${PROJECT_NAME} execute_trj_move_group execute_trj_service execute_trj_from_param override_manager
+
+add_executable(test_planning_feasibility src/test_planning_feasibility.cpp)
+add_dependencies(test_planning_feasibility ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_planning_feasibility
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+
+install(TARGETS ${PROJECT_NAME} execute_trj_move_group execute_trj_service execute_trj_from_param override_manager test_planning_feasibility
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

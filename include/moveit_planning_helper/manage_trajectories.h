@@ -119,6 +119,9 @@ inline bool setTrajectoryToParam( ros::NodeHandle& nh, const std::string& trj_na
 inline trajectory_msgs::JointTrajectory createDenseTrajectory(const trajectory_msgs::JointTrajectory& trj, double sampling_period);
 
 bool checkCollisionBetweenTrajectories(const robot_trajectory::RobotTrajectory& trj1, const robot_trajectory::RobotTrajectory& trj2, const std::__cxx11::string& joined_group_name);
+
+double computeTrajectoryLength(const trajectory_msgs::JointTrajectory& trj);
+
 }
 
 
