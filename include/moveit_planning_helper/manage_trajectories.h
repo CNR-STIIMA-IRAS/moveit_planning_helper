@@ -116,7 +116,8 @@ inline bool setTrajectoryToParam( ros::NodeHandle& nh, const std::string& trj_na
   return true;
 }
 
-inline trajectory_msgs::JointTrajectory createDenseTrajectory(const trajectory_msgs::JointTrajectory& trj, double sampling_period);
+inline trajectory_msgs::JointTrajectoryPoint sampleTrajectory(const trajectory_msgs::JointTrajectory& trj, const double& time,            const unsigned int& order);
+inline trajectory_msgs::JointTrajectory createDenseTrajectory(const trajectory_msgs::JointTrajectory& trj, const double& sampling_period, const unsigned int& order);
 
 bool checkCollisionBetweenTrajectories(const robot_trajectory::RobotTrajectory& trj1, const robot_trajectory::RobotTrajectory& trj2, const std::__cxx11::string& joined_group_name);
 
