@@ -18,6 +18,7 @@ namespace trajectory_processing
     void setSplineOrder(const unsigned int& order);
     bool interpolate(const ros::Duration& time, trajectory_msgs::JointTrajectoryPoint& pnt, const double& scaling=1.0);
     bool resampleTrajectory(const double delta_time, trajectory_msgs::JointTrajectory& trj);
+
     ros::Duration trjTime();
   };
   
