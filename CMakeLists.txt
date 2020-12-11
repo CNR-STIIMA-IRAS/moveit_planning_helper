@@ -42,10 +42,8 @@ include
 )
 
 add_library(${PROJECT_NAME}
-  src/${PROJECT_NAME}/iterative_time_parameterization.cpp
   src/${PROJECT_NAME}/manage_trajectories.cpp
-  src/${PROJECT_NAME}/multiplugins_planner.cpp
-  src/${PROJECT_NAME}/spline_interpolator.cpp
+   src/${PROJECT_NAME}/spline_interpolator.cpp
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 

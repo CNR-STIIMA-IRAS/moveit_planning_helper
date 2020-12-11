@@ -85,11 +85,10 @@ int main(int argc, char **argv)
       ROS_INFO("%d) %s", idx, list_trjs.at(idx).c_str());
     }
 
+    int x;
     std::cout << "enter number: ";
     std::string input;
     std::cin >> input;
-
-    int x;
     try
     {
       x = boost::lexical_cast<int> (input);
@@ -99,6 +98,7 @@ int main(int argc, char **argv)
       std::cout << "Error: input string was not valid" << std::endl;
       return -1;
     }
+
     if (x == -10)
     {
       ROS_INFO("execute all the trajectories");
@@ -255,7 +255,15 @@ int main(int argc, char **argv)
       trajectory.setRobotTrajectoryMsg(trj_state, my_plan.trajectory_.joint_trajectory);
       trajectory_processing::IterativeSplineParameterization isp;
       isp.computeTimeStamps(trajectory);
-      trajectory.getRobotTrajectoryMsg(approach_trj);
+      try
+      {
+        trajectory.getRobotTrajectoryMsg(approach_trj);
+      }
+      catch (std::exception & ex)
+      {
+        ROS_ERROR("sometimes goes wrong: %s",ex.what());
+        continue;
+      }
       
       ROS_INFO("Move %s to initial position", group_name.c_str());
       std_srvs::Empty srv;

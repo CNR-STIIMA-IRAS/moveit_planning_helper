@@ -3,7 +3,7 @@
 
 #include <rosparam_utilities/rosparam_utilities.h>
 #include <moveit/robot_trajectory/robot_trajectory.h>
-#include <moveit_planning_helper/iterative_spline_parameterization.h>
+#include <moveit/trajectory_processing/iterative_spline_parameterization.h>
 #include <eigen_matrix_utils/eigen_matrix_utils.h>
 #include <moveit_planning_helper/spline_interpolator.h>
 #include <name_sorting/sort_trajectories.h>
