@@ -19,4 +19,23 @@ bool checkCollisionBetweenTrajectories(const robot_trajectory::RobotTrajectory& 
   return false;
 }
 
+double computeTrajectoryLength(const trajectory_msgs::JointTrajectory &trj)
+{
+  if (trj.points.size()==0)
+    return 0;
+
+  double length=0;
+  std::vector<double> last_pos=trj.points.at(0).positions;
+  for (unsigned int idx=1;idx<trj.points.size();idx++)
+  {
+    std::vector<double> pos=trj.points.at(idx).positions;
+    double squared_segment_length=0;
+    for (unsigned int iax=0;iax<pos.size();iax++)
+    {
+      squared_segment_length+=std::pow(pos.at(iax)-last_pos.at(iax),2);
+    }
+    length+=std::sqrt(squared_segment_length);
+  }
+  return length;
+}
 }

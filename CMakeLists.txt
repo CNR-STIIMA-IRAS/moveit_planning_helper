@@ -13,11 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   moveit_visual_tools
   actionlib_msgs
-  descartes_moveit
-  descartes_planner
-  descartes_utilities
-  cartesian_path_utils
   subscription_notifier
+  name_sorting
 )
 
 add_action_files(
@@ -33,7 +30,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES moveit_planning_helper
- CATKIN_DEPENDS moveit_core roscpp eigen_matrix_utils cartesian_path_utils descartes_utilities descartes_planner descartes_moveit  moveit_ros_planning  moveit_ros_planning_interface actionlib moveit_visual_tools actionlib_msgs
+ CATKIN_DEPENDS moveit_core roscpp eigen_matrix_utils moveit_ros_planning  moveit_ros_planning_interface actionlib moveit_visual_tools actionlib_msgs name_sorting
  DEPENDS 
 )
 
@@ -45,14 +42,11 @@ include
 )
 
 add_library(${PROJECT_NAME}
-  src/${PROJECT_NAME}/iterative_time_parameterization.cpp
   src/${PROJECT_NAME}/manage_trajectories.cpp
-  src/${PROJECT_NAME}/multiplugins_planner.cpp
-  src/${PROJECT_NAME}/manage_planning_scene.cpp
-  src/${PROJECT_NAME}/spline_interpolator.cpp
+   src/${PROJECT_NAME}/spline_interpolator.cpp
 )
-
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 
 add_executable(execute_trj_move_group src/execute_trj_moveit.cpp)
 add_dependencies(execute_trj_move_group ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -102,7 +96,16 @@ target_link_libraries(test_joint_multiquery
 )
 
 
-install(TARGETS ${PROJECT_NAME} execute_trj_move_group execute_trj_service execute_trj_from_param override_manager
+
+add_executable(test_planning_feasibility src/test_planning_feasibility.cpp)
+add_dependencies(test_planning_feasibility ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_planning_feasibility
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+
+install(TARGETS ${PROJECT_NAME} execute_trj_move_group execute_trj_service execute_trj_from_param override_manager test_planning_feasibility
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
