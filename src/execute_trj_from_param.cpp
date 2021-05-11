@@ -147,6 +147,13 @@ int main(int argc, char **argv)
     log_name = "no_name";
   }
 
+  double timeout;
+  if (!nh.getParam("planning_timeout", timeout))
+  {
+    timeout = 5;
+  }
+
+
   bool save_time;
   if (!nh.getParam("/binary_logger/save_with_time", save_time))
   {
@@ -243,6 +250,7 @@ int main(int argc, char **argv)
 
       move_group.setStartStateToCurrentState();
       move_group.setJointValueTarget(initial_position);
+      move_group.setPlanningTime(timeout);
       
       robot_trajectory::RobotTrajectory trajectory(move_group.getRobotModel(), group_name);
       success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
