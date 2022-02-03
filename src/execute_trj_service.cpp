@@ -127,7 +127,8 @@ void ExecuteTrajectoryFromParamAction( const moveit_planning_helper::ExecuteTraj
       moveit_msgs::RobotTrajectory isp_trj;
       moveit_msgs::RobotTrajectory approach_trj;
       
-      if (!trajectory_processing::getTrajectoryFromParam(nh, current_trj_name, trj))
+      std::string what;
+      if (!trajectory_processing::getTrajectoryFromParam(nh.getNamespace(), current_trj_name, trj, what))
       {
         ROS_ERROR("%s not found", current_trj_name.c_str());
         return;
