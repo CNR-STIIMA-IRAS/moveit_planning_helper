@@ -165,7 +165,7 @@ if(ENABLE_TESTING)
       set(COVERAGE_EXCLUDES "*/${PROJECT_NAME}/test*")
       add_code_coverage(
         NAME coverage_report
-        DEPENDENCIES ${PROJECT_NAME}_test
+        DEPENDENCIES manage_trajectory_test
       )
     endif()
 
