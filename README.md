@@ -1,5 +1,7 @@
 # MOVEIT PLANNING HELPER #
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/18922b4070ee40388564a64822f04af5)](https://app.codacy.com/gh/CNR-STIIMA-IRAS/moveit_planning_helper?utm_source=github.com&utm_medium=referral&utm_content=CNR-STIIMA-IRAS/moveit_planning_helper&utm_campaign=Badge_Grade_Settings)
+
 [![ROS INDUSTRIAL CI][a]][1]
 [![codecov][b]][2]
 [![Codacy Badge][c]][3]
