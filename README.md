@@ -4,6 +4,14 @@
 [![codecov][b]][2]
 [![Codacy Badge][c]][3]
 
+## Aim ##
+
+## Usage ##
+
+### Contact ###
+
+<mailto:nicola.pedrocchi@stiima.cnr.it>
+
 [a]:https://github.com/CNR-STIIMA-IRAS/moveit_planning_helper/actions/workflows/industrial_ci_action.yml/badge.svg
 [1]:https://github.com/CNR-STIIMA-IRAS/moveit_planning_helper/actions/workflows/industrial_ci_action.yml
 
