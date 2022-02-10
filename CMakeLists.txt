@@ -31,14 +31,15 @@ option(COMPILE_EXAMPLE "COMPILE THE EXAMPLE" OFF)
 
 
 find_package(catkin REQUIRED COMPONENTS
-  moveit_core
   roscpp
+  moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
   eigen_matrix_utils
   actionlib
   moveit_visual_tools
   actionlib_msgs
+  control_msgs
   subscription_notifier
   name_sorting
   rosparam_utilities

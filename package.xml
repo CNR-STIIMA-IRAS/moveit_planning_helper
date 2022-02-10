@@ -72,6 +72,7 @@
   <exec_depend>moveit_ros_planning</exec_depend>
   <exec_depend>moveit_ros_planning_interface</exec_depend>
   
+  <depend>control_msgs</depend>
   <depend>actionlib</depend>
   <depend>message_generation</depend>
   <depend>moveit_visual_tools</depend>
