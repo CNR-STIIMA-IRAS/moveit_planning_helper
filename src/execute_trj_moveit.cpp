@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     trajectory_msgs::JointTrajectory trj;
 
     std::string what;
-    if (!trajectory_processing::getTrajectoryFromParam(nh.getNamespace(), trj_name, trj, what))
+    if (!trajectory_processing::getTrajectoryFromParam(nh.getNamespace()+"/"+ trj_name, trj, what))
     {
       ROS_ERROR("%s not found",trj_name.c_str());
       return 0;
