@@ -43,7 +43,7 @@ namespace detail
 {
   struct unwrapper
   {
-    unwrapper(std::exception_ptr pe) : pe_(pe) {}
+    explicit unwrapper(std::exception_ptr pe) : pe_(pe) {}
 
     operator bool() const
     {
