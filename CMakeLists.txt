@@ -162,7 +162,7 @@ if(ENABLE_TESTING)
 
     if( ENABLE_TESTING AND ENABLE_COVERAGE_TESTING)
     message(STATUS "The coverage testing is enabled")
-      set(COVERAGE_EXCLUDES "*/${PROJECT_NAME}/test*")
+      set(COVERAGE_EXCLUDES "*/test*")
       add_code_coverage(
         NAME coverage_report
         DEPENDENCIES manage_trajectory_test
