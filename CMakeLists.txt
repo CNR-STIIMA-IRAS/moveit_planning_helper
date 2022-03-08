@@ -70,7 +70,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES moveit_planning_helper
- CATKIN_DEPENDS moveit_core roscpp eigen_matrix_utils moveit_ros_planning  moveit_ros_planning_interface actionlib moveit_visual_tools actionlib_msgs name_sorting
+ CATKIN_DEPENDS moveit_core roscpp eigen_matrix_utils moveit_ros_planning  moveit_ros_planning_interface actionlib moveit_visual_tools actionlib_msgs name_sorting rosparam_utilities
  DEPENDS 
 )
 
