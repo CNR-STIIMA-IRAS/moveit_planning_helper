@@ -19,6 +19,7 @@ namespace trajectory_processing
     bool setTrajectory(const trajectory_msgs::JointTrajectory& trj);
     bool setTrajectory(const moveit_msgs::RobotTrajectoryPtr &trj);
     bool setTrajectory(const moveit_msgs::RobotTrajectory &trj);
+    trajectory_msgs::JointTrajectoryPtr getTrajectoryMsg();
 
 
     /* setSplineOrder:

@@ -48,6 +48,10 @@ bool SplineInterpolator::setTrajectory(const moveit_msgs::RobotTrajectory &trj)
   return setTrajectory(trj.joint_trajectory);
 }
 
+trajectory_msgs::JointTrajectoryPtr SplineInterpolator::getTrajectoryMsg()
+{
+  return m_trj;
+}
 
 bool SplineInterpolator::interpolate(const ros::Duration& time, trajectory_msgs::JointTrajectoryPoint& pnt, const double& scaling)
 {
